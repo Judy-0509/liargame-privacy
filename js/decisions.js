@@ -286,6 +286,17 @@ window.KR = window.KR || {};
       ],
     },
     {
+      id: 'buy_car', when: never, valid: s => !s.car && (s.work.status === 'employed' || s.work.status === 'self'),
+      title: '차를 살까', text: s => `현금 ${money(s.money.assets)}, 연소득 ${money(s.money.income)}. 유지비는 해마다 ${money(260 * idx(s))} 안팎.`,
+      options: s => {
+        const afford = t => s.money.assets + Math.min(s.money.income * 1.5, t[1] * idx(s) * 0.7) >= t[1] * idx(s);
+        const tiers = S.carTiers.filter(afford).slice(-3);
+        const opts = tiers.map(t => ({ label: t[0], hint: `${money(t[1] * idx(s))}. 값은 해마다 13%씩 떨어진다.`, auto: () => (t[1] * idx(s) < s.money.income * 0.8 ? 0.35 : 0.12), focus: 'money', apply: s => { const price = Math.round(t[1] * idx(s)); const loan = Math.max(0, price - s.money.assets); S.cost(s, price - loan); if (loan) s.money.debt += loan; s.car = { n: t[0], price: t[1], v: price, age: 0, boughtYear: s.year }; S.log(s, `${t[0]}를 샀다. ${money(price)}${loan ? `, 그중 할부 ${money(loan)}` : ''}.`, 'item'); S.bump(s, 'happy', 4); } }));
+        opts.push({ label: '사지 않는다', hint: '대중교통으로 충분하다.', auto: () => 0.5, focus: 'rest', apply: () => { } });
+        return opts;
+      },
+    },
+    {
       id: 'return_home', when: s => !!s.abroad && s.age >= 30 && s.age % 6 === 0 && s.age < 65,
       title: '한국으로 돌아갈까', text: s => `해외 생활 ${s.age - s.work.since}년.`,
       options: s => [

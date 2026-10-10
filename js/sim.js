@@ -105,6 +105,7 @@ window.KR = window.KR || {};
     s.love = { partner: null, since: 0, married: false, spouse: null, marriedAt: null, divorced: 0, single: false, trying: false, tryYears: 0, asked: 0 };
     s.kids = [];
     s.hs = { smoker: false, smokeYears: 0, drinker: false, exercise: false, cond: [], cancer: null, cancers: 0, dementia: false, careHome: false, poverty: false };
+    s.items = []; s.car = null; s.pet = null;
     s.hIdx = 1;
     s.cohortSeed = (o.seed * 7919) >>> 0;
     const r = region(s);
@@ -572,6 +573,41 @@ window.KR = window.KR || {};
     }
   }
 
+  S.hasItem = (s, k) => s.items.some(i => i.k === k);
+  S.addItem = (s, k, n, v) => { s.items.push({ k, n, y: s.year, v: v || 0 }); };
+  S.removeItem = (s, k) => { s.items = s.items.filter(i => i.k !== k); };
+  const petNames = ['콩이', '보리', '초코', '몽이', '두부', '호두', '봄이', '나비', '루비', '까미', '복이', '달이'];
+  S.carTiers = [['경차', 1300], ['준중형차', 2800], ['중형차', 4300], ['SUV', 4600], ['수입차', 8500]];
+
+  function yearItems(s) {
+    const a = s.age, y = s.year, idx = S.incomeIndex(y);
+    const working = s.work.status === 'employed' || s.work.status === 'self';
+    if (a === 8 && y >= 1975 && U.chance(s, 0.55)) { S.addItem(s, 'bike', '자전거'); S.log(s, '첫 자전거가 생겼다.', 'item'); }
+    if (!S.hasItem(s, 'smartphone') && !S.hasItem(s, 'phone')) {
+      if (y >= 1993 && y <= 1998 && a >= 16 && a <= 26 && !S.hasItem(s, 'pager') && U.chance(s, 0.4)) { S.addItem(s, 'pager', '삐삐'); S.log(s, '삐삐를 샀다. 공중전화 앞에 줄을 섰다.', 'item'); }
+      if (y >= 1999 && y < 2010 && a >= 15 && U.chance(s, y < 2003 ? 0.5 : 0.9)) { S.removeItem(s, 'pager'); S.addItem(s, 'phone', '휴대전화'); S.log(s, '첫 휴대전화가 생겼다.', 'item'); }
+    }
+    if (y >= 2010 && a >= 12 && !S.hasItem(s, 'smartphone') && U.chance(s, y < 2013 ? 0.5 : 0.92)) { S.removeItem(s, 'phone'); S.removeItem(s, 'pager'); S.addItem(s, 'smartphone', '스마트폰'); if (a > 12 || y < 2020) S.log(s, '첫 스마트폰이 생겼다.', 'item'); }
+    if (y >= 1995 && a >= 18 && (s.edu.stage === 'univ' || working) && !S.hasItem(s, 'pc') && !S.hasItem(s, 'laptop') && U.chance(s, 0.45)) { if (y < 2008) S.addItem(s, 'pc', '컴퓨터'); else S.addItem(s, 'laptop', '노트북'); }
+    if (!S.hasItem(s, 'license') && a >= 19 && a <= 32 && y >= 1985 && s.mil.status !== 'serving' && U.chance(s, y < 2000 ? 0.07 : 0.1)) { S.addItem(s, 'license', '운전면허'); S.log(s, '운전면허를 땄다.', 'item'); }
+    if (s.car) {
+      s.car.age += 1; s.car.v = Math.round(s.car.v * 0.87); S.cost(s, 260 * idx);
+      if (s.car.age >= 12) {
+        if (working && a < 70 && U.chance(s, 0.6)) { const price = Math.round(s.car.price * idx / S.incomeIndex(s.car.boughtYear)); S.cost(s, price - s.car.v); s.car = { ...s.car, age: 0, v: price, boughtYear: y }; S.log(s, `오래된 차를 보내고 새 ${s.car.n}를 샀다.`, 'item'); }
+        else { S.log(s, '오래된 차를 폐차했다.', 'item'); s.car = null; }
+      }
+      if (s.car && a >= 78 && U.chance(s, 0.3)) { S.log(s, '운전을 그만두고 차를 팔았다.', 'item'); S.gain(s, s.car.v); s.car = null; }
+    } else if (S.hasItem(s, 'license') && working && a >= 24 && a <= 62 && (s.last.buy_car == null || a - s.last.buy_car >= 6) && s.money.assets >= 1500 * idx) pushDecision(s, 'buy_car');
+    if (s.pet) {
+      s.pet.age += 1; S.cost(s, 150 * idx); S.bump(s, 'rel', 1);
+      if (s.pet.age >= s.pet.life) { S.log(s, `${s.pet.n}이(가) 무지개다리를 건넜다.`, 'item'); s.yearShock.happy -= 8; s.pet = null; }
+    } else if (a >= 24 && a <= 68 && y >= 1990 && s.housing !== 'parents' && !s.hs.careHome && U.chance(s, 0.015)) {
+      const kind = U.chance(s, 0.6) ? '강아지' : '고양이';
+      s.pet = { kind, n: U.pick(s, petNames), age: 0, life: U.int(s, 11, 16) };
+      S.log(s, `${kind} ${s.pet.n}을(를) 들였다.`, 'item'); s.yearShock.happy += 5; s.yearShock.rel += 2;
+    }
+  }
+
   function yearHealth(s) {
     const h = s.hs, a = s.age, st = s.stats;
     if (!h.smoker && a >= 18 && a <= 24 && !h.quit) { const rate = yr(s.sex === 'M' ? 'smokeM' : 'smokeF', s.year); if (U.chance(s, rate / 6 * (s.focus === 'health' ? 0.4 : 1))) { h.smoker = true; S.log(s, '담배를 피우기 시작했다.', 'health'); } }
@@ -621,11 +657,12 @@ window.KR = window.KR || {};
     }
     if (a >= 65 && s.year >= 2014 && (m.pension || 0) < 100 * idx && m.assets < 20000 * idx) { income += D.old.basicPension * 12 * idx; }
     if (s.oldJob) income += s.oldJob * 12;
+    if (a >= 65) { m.alloc.coin = 0; m.alloc.stock = Math.min(m.alloc.stock, 0.3); }
     const ret = m.alloc; const inv = (ret.deposit + ret.stock + ret.coin);
     if (inv > 0 && m.assets > 0) {
       const base = m.assets;
       let r = ret.deposit * 0.025;
-      let stock = U.normal(s, 0.07, 0.2); if (s.year === 1997 || s.year === 2008) stock = -0.4; if (s.year === 2020) stock = 0.3; if (s.year === 2022) stock = -0.25;
+      let stock = U.normal(s, 0.05, 0.18); if (s.year === 1997 || s.year === 2008) stock = -0.4; if (s.year === 2020) stock = 0.3; if (s.year === 2022) stock = -0.25;
       r += ret.stock * stock;
       if (ret.coin > 0 && s.year >= 2017) { const coin = Math.exp(U.normal(s, 0.0, 0.8)) - 1; r += ret.coin * coin; if (Math.abs(coin) > 0.6) S.log(s, coin > 0 ? '코인이 올랐다. 잠을 못 잤다.' : '코인이 반토막 났다.', 'money'); }
       const gainV = Math.round(base * r); m.assets += gainV;
@@ -638,6 +675,8 @@ window.KR = window.KR || {};
     for (const k of s.kids) { const ka = s.year - k.by; if (k.alive && k.univ && ka >= 18 && ka <= 21) spend += 550; }
     for (const k of s.kids) if (k.alive && k.custody === 'ex' && s.year - k.by < 19) spend += 600;
     spend *= S.payIndex(s.year) * (region(s).capital ? 1.08 : 1) * (0.7 + 0.3 * U.clamp(income / Math.max(1, S.medianIncome(s.year)), 0.3, 2.2));
+    spend *= 1 + 0.15 * Math.log10(Math.max(1, m.assets / (10000 * idx)));
+    if (a >= 60) spend += Math.max(0, m.assets - 20000 * idx) * 0.015;
     if (m.debt > Math.max(income, 1)) spend *= 0.8;
     if (s.housing === 'parents' && a < 22) spend = 0;
     if (a < 22 && s.housing === 'parents') spend = (w.status === 'employed' || w.status === 'self') ? 500 * idx : 0;
@@ -739,6 +778,7 @@ window.KR = window.KR || {};
     yearWork(s);
     yearLove(s);
     yearHousing(s);
+    yearItems(s);
     yearHealth(s);
     yearMoney(s);
     yearStats(s);
@@ -775,6 +815,17 @@ window.KR = window.KR || {};
   };
   S.setAlloc = function (s, alloc) { const tot = alloc.deposit + alloc.stock + alloc.coin; const f = tot > 1 ? 1 / tot : 1; s.money.alloc = { deposit: alloc.deposit * f, stock: alloc.stock * f, coin: alloc.coin * f }; };
 
+  S.netWorth = s => { const m = s.money; return Math.round(m.assets + (m.homeValue || 0) + (m.deposit || 0) + (s.car ? s.car.v : 0) - (m.jeonseLoan || 0) - m.debt - m.loan); };
+  S.itemList = s => {
+    const out = [];
+    const r = region(s);
+    if (s.housing === 'own') out.push({ k: 'home', n: `${s.abroad ? '해외' : r.short} ${s.money.homeValue >= 30000 ? '아파트' : '집'}`, v: s.money.homeValue, y: s.money.loanAt != null ? s.birthYear + s.money.loanAt : s.year });
+    if (s.housing === 'jeonse') out.push({ k: 'jeonse', n: '전세 보증금', v: s.money.deposit, y: s.year });
+    if (s.car) out.push({ k: 'car', n: `${s.car.n} (${s.car.boughtYear}년식)`, v: s.car.v, y: s.car.boughtYear });
+    if (s.pet) out.push({ k: 'pet', n: `${s.pet.kind} ${s.pet.n} (${s.pet.age}살)`, v: 0, y: s.year - s.pet.age });
+    for (const i of s.items) out.push({ k: i.k, n: i.n, v: i.v, y: i.y });
+    return out;
+  };
   S.summary = function (s) {
     const r = region(s);
     const kids = s.kids.filter(k => k.alive).length;
@@ -783,7 +834,7 @@ window.KR = window.KR || {};
     return {
       name: s.name, sex: s.sex, region: r.short, regionFull: r.name, birthYear: s.birthYear, age: s.age, alive: s.alive, death: s.death,
       degree: ['elem', 'mid', 'high', 'repeat'].includes(s.edu.stage) ? '재학 중' : s.edu.degree, univ: s.edu.univ ? s.edu.univ.kind : null, job, married: s.love.marriedAt != null, marriedAt: s.love.marriedAt, divorced: s.love.divorced, kids,
-      assets: Math.round(s.money.assets + (s.money.homeValue || 0) + (s.money.deposit || 0) - (s.money.jeonseLoan || 0) - s.money.debt - s.money.loan), home, lifetimeIncome: s.money.lifetimeIncome,
+      assets: S.netWorth(s), items: S.itemList(s), home, lifetimeIncome: s.money.lifetimeIncome,
       stats: { ...s.stats }, notes: s.notes, words: s.words || '', abroad: !!s.abroad, military: s.mil.kind || null, cancers: s.hs.cancers, smoker: s.hs.smoker,
       map: s.map.map(x => [x.st, x.h]), decile: s.parents.decile,
     };

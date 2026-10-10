@@ -38,7 +38,7 @@
   function finishYear(instant) {
     const s = A.s;
     const entries = S.completeYear(s);
-    UI.renderTop(s); UI.renderStats(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s);
+    UI.renderTop(s); UI.renderStats(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s); UI.renderAssets(s);
     clearTimers();
     if (instant || !A.running) { for (const e of entries) UI.prependLog(s, e); }
     else {
@@ -82,7 +82,7 @@
   function showDecision(d) {
     clearTimers();
     const body = UI.modal(`<p class="kicker">결정 · ${A.s.age}세 · ${A.s.year}년</p><h2>${UI.esc(d.title)}</h2><p class="text">${UI.esc(d.text || '')}</p><div class="options">${d.options.map((o, i) => `<button data-i="${i}"><b>${UI.esc(o.label)}</b>${o.hint ? `<small>${UI.esc(o.hint)}</small>` : ''}</button>`).join('')}</div><p class="help" style="margin-top:12px"><button class="small ghost" id="dec-auto">이번엔 자동으로</button></p>`, { noClose: true });
-    const choose = i => { const opt = S.resolve(A.s, d.id, i); UI.closeModal(); UI.renderStats(A.s); processDecisions(); };
+    const choose = i => { S.resolve(A.s, d.id, i); UI.closeModal(); UI.renderStats(A.s); UI.renderAssets(A.s); processDecisions(); };
     body.querySelectorAll('.options button').forEach(b => b.onclick = () => choose(+b.dataset.i));
     body.querySelector('#dec-auto').onclick = () => { S.autoChoose(A.s, d.id); UI.closeModal(); processDecisions(); };
   }
@@ -116,11 +116,8 @@
     const cur = LS.get('krlife.current', null);
     $('btn-continue').hidden = !(cur && cur.s && cur.s.alive);
     const lives = LS.get('krlife.lives', []);
-    $('past-lives-card').hidden = !lives.length;
-    $('past-lives').innerHTML = lives.map(l => { const sm = l.summary; return `<li><div><b>${UI.esc(sm.name)}</b> <span class="meta">${sm.birthYear}–${l.death ? l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'} · ${l.death ? `${l.death.age}세, ${UI.esc(l.death.cause)}` : ''}</span></div><div class="actions" style="margin:0"><button class="small" data-view="${l.id}">다시 보기</button>${l.memorial ? '' : `<button class="small ghost" data-mem="${l.id}">추모관</button>`}</div></li>`; }).join('');
-    const mem = lives.filter(l => l.memorial);
-    $('memorial').innerHTML = mem.length ? mem.map(l => `<div class="grave" data-id="${l.id}"><b><i class="candle"></i>${UI.esc(l.summary.name)}</b><small class="meta">${l.summary.birthYear}–${l.death.year} · ${l.summary.region}</small>${l.words ? `<div class="msg">“${UI.esc(l.words)}”</div>` : ''}${l.message ? `<div class="msg">${UI.esc(l.message)}</div>` : ''}<div class="actions" style="margin-top:8px"><button class="small ghost" data-candle="${l.id}">촛불 ${l.candles || 0}</button><button class="small ghost" data-msg="${l.id}">한마디</button></div></div>`).join('') : `<p class="help">아직 모셔 둔 삶이 없습니다.</p>`;
-    const y = A.birthYear;
+    $('lives-count').textContent = lives.length ? `(${lives.length})` : '';
+    const memN = lives.filter(l => l.memorial).length; $('memorial-count').textContent = memN ? `(${memN})` : '';
     $('home-births').textContent = Math.round(U.interp(D.byYear.births, 2026) / 365).toLocaleString('ko-KR');
     updateYearHelp();
   }
@@ -179,6 +176,7 @@
       <button data-m="music">음악: ${A.music ? '켜짐' : '꺼짐'}</button>
       <button data-m="theme">화면: ${document.documentElement.dataset.theme === 'light' ? '밝게' : '어둡게'}</button>
       <button data-m="family">가족과 삶 보기</button>
+      <button data-m="assets">재산·보유 보기</button>
       <button data-m="spend">돈 쓰기 · 투자</button>
       <button data-m="stats">한국 통계 보기</button>
       <button data-m="feedback">의견 보내기</button>
@@ -194,13 +192,14 @@
       else if (m === 'stats') UI.modal(UI.statsHTML(s.year));
       else if (m === 'feedback') location.href = 'mailto:jieunyi1995@gmail.com?subject=' + encodeURIComponent('5천만 분의 1 의견');
       else if (m === 'exit') { save(); UI.closeModal(); setRunning(false); A.s = null; renderHome(); show('screen-home'); }
+      else if (m === 'assets') { UI.closeModal(); setTab('assets'); }
     });
   }
 
   function openSpend() {
     const s = A.s; const body = UI.modal(UI.spendHTML(s));
-    body.querySelectorAll('button[data-spend]').forEach(b => b.onclick = () => { if (S.spend(s, b.dataset.spend)) { UI.prependLog(s, s.log[s.log.length - 1]); UI.renderStats(s); openSpend(); } });
-    const upd = () => { const g = id => +body.querySelector('#' + id).value / 100; S.setAlloc(s, { deposit: g('al-deposit'), stock: g('al-stock'), coin: g('al-coin') }); body.querySelectorAll('.alloc label').forEach(l => { l.querySelector('span').textContent = Math.round(l.querySelector('input').value) + '%'; }); save(); };
+    body.querySelectorAll('button[data-spend]').forEach(b => b.onclick = () => { if (S.spend(s, b.dataset.spend)) { UI.prependLog(s, s.log[s.log.length - 1]); UI.renderStats(s); UI.renderAssets(s); openSpend(); } });
+    const upd = () => { const g = id => +body.querySelector('#' + id).value / 100; S.setAlloc(s, { deposit: g('al-deposit'), stock: g('al-stock'), coin: g('al-coin') }); UI.renderAssets(s); body.querySelectorAll('.alloc label').forEach(l => { l.querySelector('span').textContent = Math.round(l.querySelector('input').value) + '%'; }); save(); };
     body.querySelectorAll('.alloc input').forEach(i => i.oninput = upd);
   }
 
@@ -220,6 +219,31 @@
     } catch (e) { UI.toast('이 기기에서는 음악을 켤 수 없습니다.'); }
   }
 
+  function setTab(k) {
+    for (const b of $('tabs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tab === k);
+    for (const p of document.querySelectorAll('.panel[data-tab]')) p.classList.toggle('active', p.dataset.tab === k);
+    LS.set('krlife.tab', k);
+  }
+  function openLives() {
+    const lives = LS.get('krlife.lives', []);
+    const body = UI.modal(UI.livesHTML(lives));
+    body.onclick = e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.id === 'btn-clear-lives') { if (confirm('전생 기록과 추모관을 모두 지울까요?')) { LS.del('krlife.lives'); renderHome(); UI.closeModal(); } return; }
+      if (b.dataset.view) { const rec = lives.find(l => l.id === b.dataset.view); if (rec) viewLife(rec); }
+      if (b.dataset.mem) { const rec = lives.find(l => l.id === b.dataset.mem); if (rec) { rec.memorial = true; LS.set('krlife.lives', lives); renderHome(); UI.toast('추모관에 모셨습니다.'); openLives(); } }
+    };
+  }
+  function openMemorial() {
+    const lives = LS.get('krlife.lives', []);
+    const body = UI.modal(UI.memorialHTML(lives));
+    body.onclick = e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const rec = lives.find(l => l.id === (b.dataset.candle || b.dataset.msg)); if (!rec) return;
+      if (b.dataset.candle) { rec.candles = (rec.candles || 0) + 1; LS.set('krlife.lives', lives); openMemorial(); }
+      else { const t = prompt('이 사람에게 한마디', rec.message || ''); if (t != null) { rec.message = t.trim().slice(0, 140); LS.set('krlife.lives', lives); openMemorial(); } }
+    };
+  }
   function viewLife(rec) {
     const sm = rec.summary;
     UI.modal(`<h2>${UI.esc(sm.name)} <small style="color:var(--muted);font-weight:400">${sm.birthYear}–${rec.death ? rec.death.year : ''}</small></h2><p class="text">${sm.regionFull} · ${sm.sex === 'M' ? '남' : '여'} · ${rec.death ? `${rec.death.age}세, ${UI.esc(rec.death.cause)}` : ''}${rec.words ? `\n“${UI.esc(rec.words)}”` : ''}</p><div class="d-record"><ul class="log">${rec.log.slice().reverse().map(e => `<li class="${e.k}"><span class="a">${e.a}세</span><span class="t">${UI.esc(e.t)}</span><span></span></li>`).join('')}</ul></div>`);
@@ -234,18 +258,10 @@
     $('len-seg').querySelectorAll('button').forEach(b => b.onclick = () => { A.minutes = +b.dataset.min; $('len-seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });
     $('btn-born').onclick = born;
     $('btn-continue').onclick = resume;
-    $('btn-clear-lives').onclick = () => { if (confirm('전생 기록과 추모관을 모두 지울까요?')) { LS.del('krlife.lives'); renderHome(); } };
-    $('past-lives').onclick = e => {
-      const b = e.target.closest('button'); if (!b) return; const lives = LS.get('krlife.lives', []);
-      if (b.dataset.view) { const rec = lives.find(l => l.id === b.dataset.view); if (rec) viewLife(rec); }
-      if (b.dataset.mem) { const rec = lives.find(l => l.id === b.dataset.mem); if (rec) { rec.memorial = true; LS.set('krlife.lives', lives); renderHome(); UI.toast('추모관에 모셨습니다.'); } }
-    };
-    $('memorial').onclick = e => {
-      const b = e.target.closest('button'); if (!b) return; const lives = LS.get('krlife.lives', []);
-      const rec = lives.find(l => l.id === (b.dataset.candle || b.dataset.msg)); if (!rec) return;
-      if (b.dataset.candle) { rec.candles = (rec.candles || 0) + 1; LS.set('krlife.lives', lives); renderHome(); }
-      else { const t = prompt('이 사람에게 한마디', rec.message || ''); if (t != null) { rec.message = t.trim().slice(0, 140); LS.set('krlife.lives', lives); renderHome(); } }
-    };
+    $('btn-lives').onclick = e => { e.preventDefault(); openLives(); };
+    $('btn-memorial-open').onclick = e => { e.preventDefault(); openMemorial(); };
+    $('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); };
+    setTab(LS.get('krlife.tab', 'record'));
     document.querySelectorAll('[data-open]').forEach(a => a.onclick = e => { e.preventDefault(); const k = a.dataset.open; UI.modal(k === 'stats' ? UI.statsHTML(A.birthYear) : k === 'about' ? UI.aboutHTML() : k === 'privacy' ? UI.privacyHTML() : UI.notesHTML()); });
     $('modal-close').onclick = UI.closeModal;
     $('modal').onclick = e => { if (e.target === $('modal') && !$('modal-close').hidden) UI.closeModal(); };

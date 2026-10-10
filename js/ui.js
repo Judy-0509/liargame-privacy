@@ -37,10 +37,9 @@ window.KR = window.KR || {};
   UI.renderStats = s => {
     for (const k of ['health', 'happy', 'know', 'rel']) { $('s-' + k).style.width = `${Math.round(s.stats[k])}%`; $('v-' + k).textContent = Math.round(s.stats[k]); }
     const m = s.money;
-    const net = Math.round(m.assets + (m.homeValue || 0) + (m.deposit || 0) - (m.jeonseLoan || 0) - m.debt - m.loan);
-    const parts = [`자산 <b>${U.fmtMan(net)}</b>`];
+    const parts = [`순자산 <b>${U.fmtMan(S.netWorth(s))}</b>`];
     if (m.income) parts.push(`연소득 <b>${U.fmtMan(m.income)}</b>`);
-    if (m.debt + m.loan + (m.jeonseLoan || 0) > 50) parts.push(`빚 <b>${U.fmtMan(m.debt + m.loan + (m.jeonseLoan || 0))}</b>`);
+    if (m.spend) parts.push(`연지출 <b>${U.fmtMan(m.spend)}</b>`);
     parts.push(`주거 <b>${UI.housingLabel(s)}</b>`);
     if (s.love.married) parts.push(`기혼`); else if (s.love.partner) parts.push(`연애 중`);
     const kids = s.kids.filter(k => k.alive).length; if (kids) parts.push(`자녀 ${kids}`);
@@ -88,7 +87,28 @@ window.KR = window.KR || {};
     }).join('');
   };
 
-  UI.renderAll = s => { UI.renderTop(s); UI.renderStats(s); UI.renderLog(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s); };
+  const itemIcon = { home: '🏠', jeonse: '🔑', car: '🚗', pet: '🐾', bike: '🚲', pager: '📟', phone: '📱', smartphone: '📱', pc: '🖥️', laptop: '💻', license: '🪪' };
+  UI.itemsHTML = (list, showYear) => list.length ? list.map(i => `<span>${itemIcon[i.k] || '•'} ${esc(i.n)}${i.v > 0 ? `<small>${U.fmtMan(i.v)}</small>` : ''}${showYear && i.y ? `<small>${i.y}년</small>` : ''}</span>`).join('') : '<span class="none">아직 가진 것이 없다.</span>';
+  UI.renderAssets = s => {
+    const m = s.money, a = m.alloc;
+    const cash = m.assets * Math.max(0, 1 - a.deposit - a.stock - a.coin);
+    const rows = [
+      ['cash', '현금', cash, ''], ['deposit', '예금', m.assets * a.deposit, ''], ['stock', '주식·펀드', m.assets * a.stock, ''], ['coin', '코인', m.assets * a.coin, ''],
+      ['jeonse', '전세 보증금', s.housing === 'jeonse' ? m.deposit : 0, (m.jeonseLoan || 0) > 50 ? `대출 ${U.fmtMan(m.jeonseLoan)} 포함` : ''],
+      ['home', '집 (시세)', s.housing === 'own' ? m.homeValue : 0, m.loan > 50 ? `주택담보대출 ${U.fmtMan(m.loan)}` : ''],
+      ['car', '자동차', s.car ? s.car.v : 0, s.car ? `${s.car.n} · 해마다 값이 떨어짐` : ''],
+    ].filter(r => r[2] > 0 || r[0] === 'cash');
+    const gross = rows.reduce((x, r) => x + r[2], 0);
+    const debts = [['빚 (신용·학자금·할부)', m.debt], ['주택담보대출', m.loan], ['전세 대출', m.jeonseLoan || 0]].filter(d => d[1] > 50);
+    const bar = gross > 0 ? `<div class="compbar">${rows.map(r => `<i class="k-${r[0]}" style="width:${(r[2] / gross * 100).toFixed(1)}%" title="${r[1]}"></i>`).join('')}</div>` : '';
+    const table = `<table class="assets-table">${rows.map(r => `<tr><td><i class="sw k-${r[0]}"></i>${r[1]}${r[3] ? `<br><small>${r[3]}</small>` : ''}</td><td class="v">${U.fmtMan(Math.round(r[2]))}</td></tr>`).join('')}${debts.map(d => `<tr><td>${d[0]}</td><td class="v neg">−${U.fmtMan(Math.round(d[1]))}</td></tr>`).join('')}<tr class="total"><td>순자산</td><td class="v">${U.fmtMan(S.netWorth(s))}</td></tr></table>`;
+    const inc = m.income ? `<p class="help">연소득 ${U.fmtMan(m.income)} · 연지출 ${U.fmtMan(m.spend)}${m.pension ? ` · 연금 월 ${U.fmtMan(m.pension)}` : ''}${s.love.married && s.love.spouse && s.love.spouse.alive && s.love.spouse.works ? ' · 맞벌이' : ''}</p>` : '';
+    $('assets').innerHTML = bar + table + inc;
+    $('items').innerHTML = UI.itemsHTML(S.itemList(s));
+  };
+  UI.renderAll = s => { UI.renderTop(s); UI.renderStats(s); UI.renderLog(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s); UI.renderAssets(s); };
+  UI.livesHTML = lives => `<h2>전생 기록</h2><p class="text">이 브라우저에 남은 최근 10개의 삶.</p><ul class="lives">${lives.map(l => { const sm = l.summary; return `<li><div><b>${esc(sm.name)}</b> <span class="meta">${sm.birthYear}–${l.death ? l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'} · ${l.death ? `${l.death.age}세, ${esc(l.death.cause)}` : ''}</span></div><div class="actions" style="margin:0"><button class="small" data-view="${l.id}">다시 보기</button>${l.memorial ? '' : `<button class="small ghost" data-mem="${l.id}">추모관</button>`}</div></li>`; }).join('') || '<li class="meta">아직 없습니다.</li>'}</ul><div class="actions"><button class="ghost small" id="btn-clear-lives">모두 지우기</button></div>`;
+  UI.memorialHTML = lives => { const mem = lives.filter(l => l.memorial); return `<h2>추모관</h2><p class="text">끝까지 살아 낸 삶을 모셔 둡니다. 촛불을 켜고 한마디를 남길 수 있습니다.</p><div class="memorial">${mem.length ? mem.map(l => `<div class="grave"><b><i class="candle"></i>${esc(l.summary.name)}</b><small class="meta">${l.summary.birthYear}–${l.death.year} · ${l.summary.region} · ${l.death.age}세</small>${l.words ? `<div class="msg">“${esc(l.words)}”</div>` : ''}${l.message ? `<div class="msg">${esc(l.message)}</div>` : ''}<div class="actions" style="margin-top:8px"><button class="small ghost" data-candle="${l.id}">촛불 ${l.candles || 0}</button><button class="small ghost" data-msg="${l.id}">한마디</button></div></div>`).join('') : '<p class="help">아직 모셔 둔 삶이 없습니다. 사망 기록 화면이나 전생 기록에서 모실 수 있습니다.</p>'}</div>`; };
 
   UI.modal = (html, opts = {}) => {
     const m = $('modal'); $('modal-body').innerHTML = html; m.hidden = false;
@@ -189,14 +209,25 @@ window.KR = window.KR || {};
       <li><b>생각 멈춤</b> 5, 15, 30, 50, 70세에 시간이 멈추고 한 줄을 남길 수 있습니다. 메뉴에서 끌 수 있습니다.</li>
       <li><b>스탯</b> 건강·행복·지식·관계(0~100)는 가능성을 높이거나 낮출 뿐, 결과를 정하지 않습니다.</li>
       <li><b>돈</b> 모든 금액은 2024년 원화 가치 기준 근사치입니다. 지난 세상의 소득과 집값은 당시 실질 수준으로 환산했습니다.</li>
+      <li><b>재산·보유</b> 순자산은 현금·예금·주식·코인·전세 보증금·집 시세·자동차에서 빚과 대출을 뺀 값입니다. 보유한 것 탭에서 집, 차, 반려동물, 스마트폰 같은 물건을 봅니다.</li>
       <li><b>다루지 않는 것</b> 자살은 한국의 주요 사망 원인이지만 이 시뮬레이션에서는 다루지 않습니다. 15세 이상에게 권합니다.</li>
+    </ul>
+    <h3 style="margin-top:14px">원작 1 in 8 Billion과 다른 점</h3>
+    <ul style="padding-left:18px">
+      <li>141개국 대신 한국 17개 시도에서 태어납니다. 출생 확률은 시도별 출생 비율(1970년과 2024년 사이 보간)을 따릅니다.</li>
+      <li>소득 분위, 출생 순위, 부모 학력, 사교육, 수능과 재수, 특성화고, 병역, 공무원 시험, 전세·월세·자가와 영끌, 국민연금·기초연금, 주된 일자리 퇴직(49세)과 노인 일자리, 경력단절 같은 한국 고유의 갈림길을 넣었습니다.</li>
+      <li>지난 세상에는 4·19부터 IMF, 코로나19까지 한국의 실제 사건이 연도에 맞춰 나오고, 다가올 세상은 통계청 장래인구추계를 가정으로 씁니다.</li>
+      <li>같은 1초에 태어난 사람들 대신 같은 날 한국에서 태어난 네 아이의 삶을 함께 봅니다.</li>
+      <li>추모관과 전생 기록은 서버 없이 이 기기에만 저장됩니다. 공유 카드는 PNG로 저장합니다.</li>
+      <li>한 화면 안에서 진행되도록 기록·재산·지도·생존·같은 날 탭으로 나눴고, 재산 구성과 보유한 물건을 따로 보여 줍니다.</li>
+      <li>한국어만 지원합니다.</li>
     </ul>
     <p class="help">의견은 <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a>으로 보내 주세요.</p>`;
   UI.privacyHTML = () => `<h2>개인정보 처리방침</h2>
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
   UI.deathSummary = s => {
@@ -217,6 +248,7 @@ window.KR = window.KR || {};
       cell('마지막 스탯', `건강 ${Math.round(s.stats.health)} · 행복 ${Math.round(s.stats.happy)} · 지식 ${Math.round(s.stats.know)} · 관계 ${Math.round(s.stats.rel)}`),
     ].join('');
     const notes = Object.entries(s.notes || {}).filter(x => x[1]);
+    $('d-items').innerHTML = `<h3 style="margin:8px 0 4px">남긴 것</h3>` + UI.itemsHTML(sm.items, true);
     $('d-notes').innerHTML = notes.length ? `<h3>남긴 생각</h3>` + notes.map(x => `<p>${x[0]}세 — ${esc(x[1])}</p>`).join('') : '';
     $('d-words').value = s.words || '';
   };

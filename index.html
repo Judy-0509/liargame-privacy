@@ -20,7 +20,7 @@
   <header class="hero">
     <p class="kicker">한국에서 무작위로 태어나는 인생 시뮬레이션</p>
     <h1>5천만 분의 1</h1>
-    <p class="lead">오늘 한국에서는 약 <b id="home-births">650</b>명의 아이가 태어납니다.<br>당신은 그중 하나로 태어나, 한 번뿐인 삶을 끝까지 살아 봅니다.<br>나라도, 지역도, 부모도 고를 수 없습니다.</p>
+    <p class="lead">오늘 한국에서는 약 <b id="home-births">650</b>명의 아이가 태어납니다. 당신은 그중 하나로 태어나 한 번뿐인 삶을 끝까지 살아 봅니다. 나라도, 지역도, 부모도 고를 수 없습니다.</p>
   </header>
 
   <div class="card">
@@ -31,7 +31,7 @@
         <button data-era="now" class="on">지금 세상</button>
         <button data-era="future">다가올 세상</button>
       </div>
-      <p class="help" id="era-help">2026년의 한국. 합계출산율 0.75, 기대수명 남 80.6세·여 86.4세.</p>
+      <p class="help" id="era-help"></p>
     </div>
     <div class="field" id="year-field">
       <label>태어나는 해 <span id="year-label">2026</span></label>
@@ -45,16 +45,14 @@
         <button data-min="30" class="on">약 30분</button>
         <button data-min="60">약 1시간</button>
       </div>
-      <p class="help">언제든 배속을 바꾸거나 멈출 수 있습니다. 결정이 필요하면 시간이 멈춥니다.</p>
     </div>
-    <details class="field">
+    <details class="field compact">
       <summary>내 실제 출생과 비교하기 (선택)</summary>
       <div class="row">
         <input type="number" id="real-year" placeholder="태어난 해" min="1930" max="2026">
         <select id="real-sex"><option value="">성별</option><option value="M">남</option><option value="F">여</option></select>
         <select id="real-region"><option value="">지역</option></select>
       </div>
-      <p class="help">이 기기에만 저장됩니다.</p>
     </details>
     <div class="actions">
       <button class="primary big" id="btn-born">태어나기</button>
@@ -62,27 +60,16 @@
     </div>
   </div>
 
-  <div class="card" id="past-lives-card" hidden>
-    <h2>전생 기록</h2>
-    <p class="help">이 브라우저에 남은 최근 10개의 삶.</p>
-    <ul id="past-lives" class="lives"></ul>
-    <div class="actions"><button class="ghost small" id="btn-clear-lives">모두 지우기</button></div>
-  </div>
-
-  <div class="card">
-    <h2>추모관</h2>
-    <p class="help">끝까지 살아 낸 삶을 모셔 둡니다. 촛불을 켜고 한마디를 남길 수 있습니다.</p>
-    <div id="memorial" class="memorial"></div>
-  </div>
-
   <nav class="links">
-    <a href="#" data-open="stats">한국 통계 보기</a>
+    <a href="#" id="btn-lives">전생 기록 <span id="lives-count"></span></a>
+    <a href="#" id="btn-memorial-open">추모관 <span id="memorial-count"></span></a>
+    <a href="#" data-open="stats">한국 통계</a>
     <a href="#" data-open="about">이용 안내</a>
     <a href="#" data-open="privacy">개인정보</a>
     <a href="#" data-open="notes">업데이트 노트</a>
     <a href="#" id="btn-install" hidden>홈 화면에 추가</a>
   </nav>
-  <footer class="foot">통계청·KOSIS, 교육부, 병무청, 질병관리청, 국토교통부 등 공표 통계를 바탕으로 한 근사 모형입니다. 15세 이상 권장. 자살은 다루지 않습니다.</footer>
+  <footer class="foot">통계청·KOSIS, 교육부, 병무청, 질병관리청, 국토교통부 등 공표 통계를 바탕으로 한 근사 모형. 15세 이상 권장. 자살은 다루지 않습니다.</footer>
 </section>
 
 <section id="screen-life" class="screen life" hidden>
@@ -90,9 +77,9 @@
     <div class="who"><b id="t-name">—</b> <span id="t-meta"></span></div>
     <div class="age"><span id="t-age">0</span><small>세</small> <span id="t-year" class="year"></span></div>
     <div class="controls">
-      <button id="btn-pause" title="일시정지">⏸</button>
+      <button id="btn-pause" title="일시정지 (스페이스)">⏸</button>
       <div class="speeds" id="speeds"><button data-x="1" class="on">1×</button><button data-x="2">2×</button><button data-x="4">4×</button><button data-x="8">8×</button><button data-x="16">16×</button></div>
-      <button id="btn-next" class="next">다음 결정</button>
+      <button id="btn-next" class="next" title="다음 결정까지 건너뛰기 (N)">다음 결정</button>
       <button id="btn-menu" title="메뉴">⋯</button>
     </div>
   </header>
@@ -105,39 +92,53 @@
   </div>
   <div class="moneyline" id="moneyline"></div>
 
-  <div class="grid">
-    <section class="panel focus">
-      <h3>이번 해의 초점</h3>
-      <select id="focus">
-        <option value="balance">균형</option>
-        <option value="health">건강</option>
-        <option value="study">공부</option>
-        <option value="work">일</option>
-        <option value="rel">관계</option>
-        <option value="rest">쉼</option>
-      </select>
-      <label class="check"><input type="checkbox" id="auto"> 자동 결정</label>
-      <p class="help" id="decision-wait" hidden>결정이 기다리고 있습니다.</p>
-    </section>
+  <div class="focusrow">
+    <label>초점 <select id="focus">
+      <option value="balance">균형</option>
+      <option value="health">건강</option>
+      <option value="study">공부</option>
+      <option value="work">일</option>
+      <option value="rel">관계</option>
+      <option value="rest">쉼</option>
+    </select></label>
+    <label class="check"><input type="checkbox" id="auto"> 자동 결정</label>
+    <span class="help" id="decision-wait" hidden>결정이 기다리고 있습니다.</span>
+  </div>
 
-    <section class="panel record">
+  <nav class="tabs" id="tabs">
+    <button data-tab="record" class="on">기록</button>
+    <button data-tab="assets">재산·보유</button>
+    <button data-tab="map">지도</button>
+    <button data-tab="curve">생존</button>
+    <button data-tab="cohort">같은 날</button>
+  </nav>
+
+  <div class="grid">
+    <section class="panel record active" data-tab="record">
       <h3>인생 기록</h3>
       <ul id="log" class="log"></ul>
     </section>
 
-    <section class="panel map">
+    <section class="panel assets" data-tab="assets">
+      <h3>재산 구성 <small>2024년 원화 가치</small></h3>
+      <div id="assets"></div>
+      <h3>보유한 것</h3>
+      <div id="items" class="items"></div>
+    </section>
+
+    <section class="panel map" data-tab="map">
       <h3>인생 지도 <small>한 칸이 1년</small></h3>
       <div id="lifemap" class="lifemap"></div>
       <div class="legend"><i class="c-infant"></i>어린 시절 <i class="c-school"></i>학생 <i class="c-univ"></i>대학 <i class="c-mil"></i>군 복무 <i class="c-work"></i>일 <i class="c-seek"></i>구직 <i class="c-home"></i>가사·육아 <i class="c-retire"></i>은퇴 <i class="c-care"></i>돌봄</div>
     </section>
 
-    <section class="panel curve">
+    <section class="panel curve" data-tab="curve">
       <h3>생존 곡선 <small>같은 해에 태어난 사람들</small></h3>
       <svg id="curve" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
       <p class="help" id="curve-help"></p>
     </section>
 
-    <section class="panel cohort">
+    <section class="panel cohort" data-tab="cohort">
       <h3>같은 날 태어난 아이들</h3>
       <ul id="cohort" class="cohort-list"></ul>
     </section>
@@ -150,16 +151,16 @@
     <h1 id="d-title"></h1>
     <p id="d-sub" class="lead"></p>
     <div id="d-summary" class="summary"></div>
+    <div id="d-items" class="items"></div>
     <div id="d-notes" class="notes"></div>
     <div class="field">
-      <label>그 사람에게 한마디</label>
-      <textarea id="d-words" rows="2" maxlength="140" placeholder="그 사람에게 건넬 말을 남겨 보세요."></textarea>
+      <textarea id="d-words" rows="2" maxlength="140" placeholder="그 사람에게 건넬 한마디"></textarea>
     </div>
     <canvas id="share-canvas" width="1080" height="1350" hidden></canvas>
     <div class="actions wrap">
       <button class="primary" id="btn-share">공유 카드 저장</button>
       <button class="ghost" id="btn-memorial">추모관에 모시기</button>
-      <button class="ghost" id="btn-record">인생 기록 보기</button>
+      <button class="ghost" id="btn-record">인생 기록</button>
       <button class="ghost" id="btn-again">다시 태어나기</button>
     </div>
   </div>
