@@ -222,7 +222,7 @@ textarea { resize: vertical; }
 @media (min-width: 900px) {
   .life { padding: 10px 16px; gap: 8px; }
   .topbar { grid-template-columns: auto 1fr auto auto; align-items: center; }
-  .pixel { grid-column: 1; grid-row: 1 / 2; width: 240px; }
+  .pixel { grid-column: 1; grid-row: 1 / 2; width: 360px; }
   .who { grid-column: 2; }
   .age { grid-column: 3; }
   .controls { grid-column: 4; }
