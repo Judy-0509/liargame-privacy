@@ -74,6 +74,14 @@ input[type=number], select, textarea { width: 100%; background: var(--bg2); bord
 .speeds { display: flex; gap: 3px; }
 .speeds button, .controls > button { padding: 5px 8px; font-size: .82rem; border-radius: 8px; }
 .controls .next { margin-left: auto; }
+.yearbar { grid-column: 1 / -1; position: relative; height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; margin-top: 2px; background-image: repeating-linear-gradient(90deg, transparent 0 calc(100% / 12 - 1px), var(--line) calc(100% / 12 - 1px) calc(100% / 12)); }
+.yearbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width .1s linear; }
+.yearbar.stopped i { background: var(--muted); transition: none; }
+.yearbar.fast i { background: var(--accent); }
+.yearlabel { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); line-height: 1.2; margin-top: -1px; }
+.yearlabel b { color: var(--text); font-weight: 600; }
+.age.pop { animation: pop .45s ease; }
+@keyframes pop { 0% { transform: scale(1); } 35% { transform: scale(1.18); color: var(--accent); } 100% { transform: scale(1); } }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 5px 8px; display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: .8rem; }
 .stat span { color: var(--muted); }
@@ -213,6 +221,7 @@ textarea { resize: vertical; }
 @media (min-width: 900px) {
   .life { padding: 10px 16px; gap: 8px; }
   .topbar { grid-template-columns: 1fr auto auto; }
+  .yearbar, .yearlabel { grid-column: 1 / -1; }
   .controls { grid-column: auto; }
   .controls .next { margin-left: 6px; }
   .tabs { display: none; }

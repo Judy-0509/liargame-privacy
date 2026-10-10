@@ -73,11 +73,37 @@
   function save() { if (A.s) LS.set('krlife.current', { s: A.s, minutes: A.minutes, speed: A.speed, auto: A.auto, pausesOn: A.pausesOn }); }
   function clearTimers() { clearTimeout(A.timer); A.timer = null; for (const t of A.reveals) clearTimeout(t); A.reveals = []; }
 
-  function setRunning(v) { A.running = v; $('btn-pause').textContent = v ? '⏸' : '▶'; if (!v) clearTimers(); else if (!A.busy) schedule(); }
-  function schedule() { clearTimeout(A.timer); if (!A.running || !A.s || !A.s.alive) return; A.timer = setTimeout(advance, yearMs()); }
+  const nowMs = () => performance.now();
+  function setRunning(v) {
+    const was = A.running; A.running = v; $('btn-pause').textContent = v ? '⏸' : '▶';
+    if (!v) { if (A.waiting && was) A.elapsed = Math.min(A.yearLen || 0, nowMs() - (A.yearStart || nowMs())); clearTimers(); }
+    else if (!A.busy) { if (A.waiting && A.elapsed != null) { A.yearStart = nowMs() - A.elapsed; A.timer = setTimeout(advance, Math.max(50, A.yearLen - A.elapsed)); A.elapsed = null; } else schedule(); }
+  }
+  function schedule() { clearTimeout(A.timer); if (!A.running || !A.s || !A.s.alive) return; A.yearLen = yearMs(); A.yearStart = nowMs(); A.elapsed = null; A.waiting = true; A.timer = setTimeout(advance, A.yearLen); }
+  function yearFrac() { if (!A.waiting) return 0; if (A.elapsed != null) return U.clamp(A.elapsed / Math.max(1, A.yearLen), 0, 1); if (!A.running) return 0; return U.clamp((nowMs() - A.yearStart) / Math.max(1, A.yearLen), 0, 1); }
+  function tickBar() {
+    if (A.s && !$('screen-life').hidden) {
+      const bar = $('yearbar'), fill = $('yearfill'), label = $('yearlabel'), hint = $('yearhint');
+      const modal = !$('modal').hidden, dead = !A.s.alive;
+      let frac = yearFrac(), state = '';
+      if (dead) { frac = 1; state = '끝'; }
+      else if (A.fast) { frac = 1; state = '빠르게 넘기는 중'; }
+      else if (modal && !A.waiting) { frac = 0; state = '결정을 기다리는 중'; }
+      else if (!A.running) state = '일시정지';
+      const month = Math.min(12, Math.floor(frac * 12) + 1);
+      fill.style.width = `${(frac * 100).toFixed(1)}%`;
+      bar.classList.toggle('stopped', !!state && !A.fast); bar.classList.toggle('fast', !!A.fast);
+      const txt = `${A.s.year}년 <b>${month}월</b>${state ? ' · ' + state : ''}`;
+      if (label.innerHTML !== txt) label.innerHTML = txt;
+      const h = A.running && !state ? `${A.speed}× · 한 해 ${(A.yearLen / 1000).toFixed(0)}초` : '';
+      if (hint.textContent !== h) hint.textContent = h;
+    }
+    requestAnimationFrame(tickBar);
+  }
 
   function advance() {
     const s = A.s; if (!s || !s.alive || A.busy) return;
+    A.waiting = false; A.elapsed = null;
     const r = S.beginYear(s);
     UI.renderTop(s);
     if (r.pause && A.pausesOn) { A.pending = { pause: r.pause }; return showPause(r.pause); }
@@ -115,7 +141,7 @@
 
   function fastForward() {
     const s = A.s; if (!s || !s.alive || A.busy) return;
-    clearTimers(); A.running = true; $('btn-pause').textContent = '⏸';
+    clearTimers(); A.running = true; $('btn-pause').textContent = '⏸'; A.waiting = false; A.elapsed = null; A.fast = true;
     let guard = 0;
     while (s.alive && guard++ < 130) {
       const r = S.beginYear(s);
@@ -126,10 +152,10 @@
         if (A.auto) { S.autoChoose(s, id); continue; }
         UI.renderAll(s); $('decision-wait').hidden = false; showDecision(d); stop = true; break;
       }
-      if (stop) return;
+      if (stop) { A.fast = false; return; }
       S.completeYear(s);
     }
-    UI.renderAll(s); save();
+    A.fast = false; UI.renderAll(s); save();
     if (!s.alive) { A.busy = true; setTimeout(onDeath, 600); }
   }
 
@@ -252,7 +278,13 @@
     if (A.s.map.length < A.s.age + 1) { A.running = true; $('btn-pause').textContent = '⏸'; processDecisions(); } else setRunning(true);
   }
 
-  function setSpeed(x) { A.speed = x; for (const b of $('speeds').querySelectorAll('button')) b.classList.toggle('on', +b.dataset.x === x); if (A.running && !A.busy && $('modal').hidden) schedule(); }
+  function setSpeed(x) {
+    const prev = A.speed; A.speed = x; for (const b of $('speeds').querySelectorAll('button')) b.classList.toggle('on', +b.dataset.x === x);
+    if (!A.waiting || !A.s || !A.s.alive) return;
+    const frac = yearFrac(); A.yearLen = yearMs();
+    if (A.running && !A.busy && $('modal').hidden) { A.yearStart = nowMs() - frac * A.yearLen; clearTimeout(A.timer); A.timer = setTimeout(advance, Math.max(50, (1 - frac) * A.yearLen)); }
+    else if (A.elapsed != null) A.elapsed = frac * A.yearLen;
+  }
 
   function openMenu() {
     const s = A.s;
@@ -378,6 +410,7 @@
     $('btn-install').onclick = e => { e.preventDefault(); if (A.installEvt) A.installEvt.prompt(); };
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
     setEra('now'); renderHome(); show('screen-home');
+    requestAnimationFrame(tickBar);
   }
   document.addEventListener('DOMContentLoaded', init);
 })();

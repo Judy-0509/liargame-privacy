@@ -33,7 +33,7 @@ window.KR = window.KR || {};
     const r = D.regions[s.region];
     $('t-name').textContent = s.name;
     $('t-meta').textContent = `${s.sex === 'M' ? '남' : '여'} · ${s.abroad ? '해외' : r.short} · ${UI.workLabel(s)}`;
-    $('t-age').textContent = s.age;
+    const ageEl = $('t-age'); if (ageEl.textContent !== String(s.age)) { ageEl.textContent = s.age; const box = ageEl.parentElement; box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop'); }
     $('t-year').textContent = `${s.year}년`;
   };
   UI.renderStats = s => {
