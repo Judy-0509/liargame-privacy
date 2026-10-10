@@ -90,7 +90,7 @@
   function onDeath() {
     const s = A.s; clearTimers(); A.running = false; A.busy = false;
     const lives = LS.get('krlife.lives', []);
-    const rec = { id: s.birthYear + '-' + s.rng, summary: S.summary(s), log: s.log, death: s.death, when: Date.now(), memorial: false, candles: 0, words: '' };
+    const rec = { id: s.birthYear + '-' + s.rng, summary: S.summary(s), log: s.log, death: s.death, when: Date.now(), memorial: false, candles: 0 };
     lives.unshift(rec); LS.set('krlife.lives', lives.slice(0, 10));
     LS.del('krlife.current');
     A.rec = rec;
@@ -98,11 +98,9 @@
     show('screen-death');
   }
 
-  function wordsSave() { const t = $('d-words').value.trim(); if (A.s) A.s.words = t; if (A.rec) { A.rec.words = t; A.rec.summary.words = t; updateLife(A.rec); } }
   function updateLife(rec) { const lives = LS.get('krlife.lives', []); const i = lives.findIndex(x => x.id === rec.id); if (i >= 0) { lives[i] = rec; LS.set('krlife.lives', lives); } }
 
   function shareCard() {
-    wordsSave();
     const c = $('share-canvas'); UI.drawShareCard(c, A.s);
     c.toBlob(async blob => {
       const file = new File([blob], `5천만분의1-${A.s.name}.png`, { type: 'image/png' });
@@ -246,7 +244,7 @@
   }
   function viewLife(rec) {
     const sm = rec.summary;
-    UI.modal(`<h2>${UI.esc(sm.name)} <small style="color:var(--muted);font-weight:400">${sm.birthYear}–${rec.death ? rec.death.year : ''}</small></h2><p class="text">${sm.regionFull} · ${sm.sex === 'M' ? '남' : '여'} · ${rec.death ? `${rec.death.age}세, ${UI.esc(rec.death.cause)}` : ''}${rec.words ? `\n“${UI.esc(rec.words)}”` : ''}</p><div class="d-record"><ul class="log">${rec.log.slice().reverse().map(e => `<li class="${e.k}"><span class="a">${e.a}세</span><span class="t">${UI.esc(e.t)}</span><span></span></li>`).join('')}</ul></div>`);
+    UI.modal(`<h2>${UI.esc(sm.name)} <small style="color:var(--muted);font-weight:400">${sm.birthYear}–${rec.death ? rec.death.year : ''}</small></h2><p class="text">${sm.regionFull} · ${sm.sex === 'M' ? '남' : '여'} · ${rec.death ? `${rec.death.age}세, ${UI.esc(rec.death.cause)}` : ''}</p><div class="d-record"><ul class="log">${rec.log.slice().reverse().map(e => `<li class="${e.k}"><span class="a">${e.a}세</span><span class="t">${UI.esc(e.t)}</span><span></span></li>`).join('')}</ul></div>`);
   }
 
   function init() {
@@ -273,10 +271,9 @@
     $('auto').onchange = e => { A.auto = e.target.checked; save(); if (A.auto && !$('modal').hidden && A.s && A.s.queue.length) { UI.closeModal(); processDecisions(); } };
     $('log').onclick = e => { const b = e.target.closest('.star'); if (!b || !A.s) return; const li = b.closest('li'); const en = A.s.log[+li.dataset.i]; if (!en) return; en.star = !en.star; b.classList.toggle('on', en.star); b.textContent = en.star ? '★' : '☆'; save(); };
     $('btn-share').onclick = shareCard;
-    $('d-words').onchange = wordsSave;
-    $('btn-memorial').onclick = () => { wordsSave(); if (A.rec) { A.rec.memorial = true; updateLife(A.rec); UI.toast('추모관에 모셨습니다. 홈에서 볼 수 있습니다.'); } };
-    $('btn-record').onclick = () => { wordsSave(); if (A.rec) viewLife(A.rec); };
-    $('btn-again').onclick = () => { wordsSave(); A.s = null; A.rec = null; renderHome(); show('screen-home'); };
+    $('btn-memorial').onclick = () => { if (A.rec) { A.rec.memorial = true; updateLife(A.rec); UI.toast('추모관에 모셨습니다. 홈에서 볼 수 있습니다.'); } };
+    $('btn-record').onclick = () => { if (A.rec) viewLife(A.rec); };
+    $('btn-again').onclick = () => { A.s = null; A.rec = null; renderHome(); show('screen-home'); };
     document.addEventListener('keydown', e => { if (e.target.matches('input,textarea,select') || $('screen-life').hidden) return; if (e.code === 'Space') { e.preventDefault(); $('btn-pause').click(); } if (e.key === 'n') $('btn-next').click(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden && A.s) save(); });
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); A.installEvt = e; $('btn-install').hidden = false; });

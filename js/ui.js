@@ -108,7 +108,7 @@ window.KR = window.KR || {};
   };
   UI.renderAll = s => { UI.renderTop(s); UI.renderStats(s); UI.renderLog(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s); UI.renderAssets(s); };
   UI.livesHTML = lives => `<h2>전생 기록</h2><p class="text">이 브라우저에 남은 최근 10개의 삶.</p><ul class="lives">${lives.map(l => { const sm = l.summary; return `<li><div><b>${esc(sm.name)}</b> <span class="meta">${sm.birthYear}–${l.death ? l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'} · ${l.death ? `${l.death.age}세, ${esc(l.death.cause)}` : ''}</span></div><div class="actions" style="margin:0"><button class="small" data-view="${l.id}">다시 보기</button>${l.memorial ? '' : `<button class="small ghost" data-mem="${l.id}">추모관</button>`}</div></li>`; }).join('') || '<li class="meta">아직 없습니다.</li>'}</ul><div class="actions"><button class="ghost small" id="btn-clear-lives">모두 지우기</button></div>`;
-  UI.memorialHTML = lives => { const mem = lives.filter(l => l.memorial); return `<h2>추모관</h2><p class="text">끝까지 살아 낸 삶을 모셔 둡니다. 촛불을 켜고 한마디를 남길 수 있습니다.</p><div class="memorial">${mem.length ? mem.map(l => `<div class="grave"><b><i class="candle"></i>${esc(l.summary.name)}</b><small class="meta">${l.summary.birthYear}–${l.death.year} · ${l.summary.region} · ${l.death.age}세</small>${l.words ? `<div class="msg">“${esc(l.words)}”</div>` : ''}${l.message ? `<div class="msg">${esc(l.message)}</div>` : ''}<div class="actions" style="margin-top:8px"><button class="small ghost" data-candle="${l.id}">촛불 ${l.candles || 0}</button><button class="small ghost" data-msg="${l.id}">한마디</button></div></div>`).join('') : '<p class="help">아직 모셔 둔 삶이 없습니다. 사망 기록 화면이나 전생 기록에서 모실 수 있습니다.</p>'}</div>`; };
+  UI.memorialHTML = lives => { const mem = lives.filter(l => l.memorial); return `<h2>추모관</h2><p class="text">끝까지 살아 낸 삶을 모셔 둡니다. 촛불을 켜고 한마디를 남길 수 있습니다.</p><div class="memorial">${mem.length ? mem.map(l => `<div class="grave"><b><i class="candle"></i>${esc(l.summary.name)}</b><small class="meta">${l.summary.birthYear}–${l.death.year} · ${l.summary.region} · ${l.death.age}세</small>${l.message ? `<div class="msg">${esc(l.message)}</div>` : ''}<div class="actions" style="margin-top:8px"><button class="small ghost" data-candle="${l.id}">촛불 ${l.candles || 0}</button><button class="small ghost" data-msg="${l.id}">한마디</button></div></div>`).join('') : '<p class="help">아직 모셔 둔 삶이 없습니다. 사망 기록 화면이나 전생 기록에서 모실 수 있습니다.</p>'}</div>`; };
 
   UI.modal = (html, opts = {}) => {
     const m = $('modal'); $('modal-body').innerHTML = html; m.hidden = false;
@@ -250,7 +250,6 @@ window.KR = window.KR || {};
     const notes = Object.entries(s.notes || {}).filter(x => x[1]);
     $('d-items').innerHTML = `<h3 style="margin:8px 0 4px">남긴 것</h3>` + UI.itemsHTML(sm.items, true);
     $('d-notes').innerHTML = notes.length ? `<h3>남긴 생각</h3>` + notes.map(x => `<p>${x[0]}세 — ${esc(x[1])}</p>`).join('') : '';
-    $('d-words').value = s.words || '';
   };
 
   UI.drawShareCard = (canvas, s) => {
@@ -272,7 +271,6 @@ window.KR = window.KR || {};
     ctx.globalAlpha = 1; y = startY + 4 * (size + 4) + 70;
     ctx.fillStyle = '#ecebe6'; ctx.font = '400 36px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.fillText(`건강 ${Math.round(s.stats.health)}   행복 ${Math.round(s.stats.happy)}   지식 ${Math.round(s.stats.know)}   관계 ${Math.round(s.stats.rel)}`, 80, y); y += 70;
-    if (s.words) { ctx.fillStyle = '#f2b84b'; ctx.font = 'italic 400 38px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; y = wrap(`“${s.words}”`, 80, y, W - 160, 54); }
     ctx.fillStyle = '#6f717c'; ctx.font = '400 28px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.fillText(`한국 통계로 만든 인생 시뮬레이션 · ${location.host}${location.pathname.replace(/index\.html$/, '')}`, 80, H - 70);
   };

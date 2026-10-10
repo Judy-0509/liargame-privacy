@@ -835,7 +835,7 @@ window.KR = window.KR || {};
       name: s.name, sex: s.sex, region: r.short, regionFull: r.name, birthYear: s.birthYear, age: s.age, alive: s.alive, death: s.death,
       degree: ['elem', 'mid', 'high', 'repeat'].includes(s.edu.stage) ? '재학 중' : s.edu.degree, univ: s.edu.univ ? s.edu.univ.kind : null, job, married: s.love.marriedAt != null, marriedAt: s.love.marriedAt, divorced: s.love.divorced, kids,
       assets: S.netWorth(s), items: S.itemList(s), home, lifetimeIncome: s.money.lifetimeIncome,
-      stats: { ...s.stats }, notes: s.notes, words: s.words || '', abroad: !!s.abroad, military: s.mil.kind || null, cancers: s.hs.cancers, smoker: s.hs.smoker,
+      stats: { ...s.stats }, notes: s.notes, abroad: !!s.abroad, military: s.mil.kind || null, cancers: s.hs.cancers, smoker: s.hs.smoker,
       map: s.map.map(x => [x.st, x.h]), decile: s.parents.decile,
     };
   };
