@@ -73,13 +73,33 @@ window.KR = window.KR || {};
     e.stage = 'admitted'; e.major = plan.major;
     if (!e.admits.length) s.yearShock.happy -= 8; else s.yearShock.happy += 6;
   };
+  S.transferTarget = s => {
+    const e = s.edu; if (!e.univ) return null;
+    const cur = S.tierById(e.univ.id); if (!cur) return null;
+    const cands = S.tiersFor(s, e.major).filter(t => GENERAL.includes(t.id) && t.id !== 'cyber' && t.id !== 'college' && t.cut > cur.cut && t.years === 4 && t.rank <= 3).sort((a, b) => a.cut - b.cut);
+    return cands[0] || null;
+  };
+  S.transferTo = (s, tierId) => {
+    const e = s.edu, t = S.tierById(tierId), r = D.regions[s.region];
+    const isPub = U.chance(s, t.pub);
+    e.univ = { kind: t.name, id: t.id, tier: t.rank, years: t.years, wage: t.wage, public: isPub, tuition: isPub ? Math.min(t.tuition, D.edu.tuitionPublic) : t.tuition, capital: t.id === 'national' ? false : U.chance(s, t.capital), online: false, med: false };
+    e.left = 2; e.transferred = true;
+    S.log(s, `${U.eul(t.name)} 향한 편입 시험에 붙었다. 3학년으로 다시 시작.`, 'edu');
+    if (e.univ.capital && !r.capital && s.housing === 'parents') { s.flags.movedCapital = true; s.housing = 'monthly'; S.log(s, '서울로 올라와 자취를 시작했다.', 'home'); }
+    if (s.parents.decile <= 5 && e.tuition === '부모') { } else if (s.parents.decile <= 5) S.pushDecision(s, 'tuition');
+  };
+  S.restoreUniv = s => {
+    const e = s.edu, f = e.fallback; if (!f) return false;
+    e.univ = f.univ; e.left = f.left; e.major = f.major; e.sub = f.sub; e.stage = 'univ'; e.plan = null; e.admits = null; e.fallback = null;
+    S.log(s, `${U.eul(e.univ.kind)} 계속 다니기로 했다.`, 'edu'); S.pushDecision(s, 'campus'); return true;
+  };
   S.enroll = (s, tierId, major) => {
     const e = s.edu, t = S.tierById(tierId); const r = D.regions[s.region];
     const isPub = U.chance(s, t.pub);
     e.univ = { kind: t.name, id: t.id, tier: t.rank, years: t.years, wage: t.wage, public: isPub, tuition: t.id === 'cyber' ? t.tuition : isPub ? Math.min(t.tuition, D.edu.tuitionPublic) : t.tuition, capital: t.id === 'national' ? false : U.chance(s, t.capital), online: !!t.online, med: t.major === '의약' && t.years === 6 };
     e.major = t.major || major || e.major || '사회';
     e.sub = t.sub || (t.id === 'dent' ? '치의예·한의예·약학' : null);
-    e.stage = 'univ'; e.left = t.years; e.plan = null; e.admits = null;
+    e.stage = 'univ'; e.left = t.years; e.plan = null; e.admits = null; e.fallback = null;
     S.log(s, `${t.name}에 입학했다. ${e.major} 계열${e.sub ? ` · ${e.sub}` : ''}. ${isPub ? '국립' : '사립'}, 등록금 연 ${U.fmtMan(Math.round(e.univ.tuition * S.incomeIndex(s.year)))}.`, 'edu');
     if (e.univ.capital && !r.capital && !e.univ.online) { s.flags.movedCapital = true; s.housing = 'monthly'; S.log(s, '서울로 올라와 자취를 시작했다.', 'home'); }
     else if (t.id === 'national' && r.capital) { s.housing = 'monthly'; S.log(s, '지방으로 내려가 기숙사 생활을 시작했다.', 'home'); }

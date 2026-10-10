@@ -272,14 +272,13 @@ window.KR = window.KR || {};
     }
     if (e.stage === 'repeat' && a === 17 + e.repeat) {
       if (e.plan && e.plan !== '취업') S.runApplications(s, 4 + (e.tutoring ? 2 : 0));
+      else if (e.fallback) { S.log(s, '반수를 접었다.', 'edu'); S.restoreUniv(s); }
       else { e.stage = 'done'; e.plan = null; s.work.status = 'seeking'; S.log(s, '재수를 접고 일을 찾기로 했다.', 'edu'); }
     }
     if (e.stage === 'univ' || e.stage === 'grad') {
       if (s.mil.status !== 'serving') {
         e.left -= 1;
         if (e.stage === 'univ') {
-          if (U.chance(s, 0.08) && e.left > 1) { e.left += 1; S.log(s, '한 해 휴학했다.', 'edu'); }
-          else if (s.stats.know > 68 && s.parents.decile >= 6 && U.chance(s, 0.1) && e.left > 1) { S.log(s, '교환학생으로 한 학기를 보냈다.', 'edu'); S.bump(s, 'know', 3); S.bump(s, 'happy', 4); S.cost(s, 800 * S.incomeIndex(y)); }
           if (e.tuition === '알바') { S.bump(s, 'happy', -2); S.bump(s, 'know', -1); S.gain(s, 600 * S.incomeIndex(y)); }
           if (e.tuition === '대출') { s.money.debt += e.univ.tuition * S.incomeIndex(y); }
           else if (e.tuition === '장학금') { }
