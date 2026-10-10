@@ -158,6 +158,7 @@ window.KR = window.KR || {};
       <p class="help">나머지는 현금으로 둡니다. 예금 연 2.5%, 주식 평균 7%(큰 변동), 코인은 두 배 또는 반토막.</p>`;
   };
 
+  UI.stageStatsHTML = () => (D.stageStats || []).map(sec => `<details><summary>${esc(sec[0])}<small>${sec[1].length}개 항목</small></summary><table class="stats-table">${sec[1].map(it => `<tr><th>${esc(it[0])}</th><td>${esc(it[1])}${it[2] ? `<br><small class="meta">${esc(it[2])}</small>` : ''}</td></tr>`).join('')}</table></details>`).join('');
   UI.statsHTML = (year) => {
     const y = year || 2024, b = D.byYear, f1 = v => v.toFixed(1), f2 = v => v.toFixed(2);
     const rows = [
@@ -193,11 +194,12 @@ window.KR = window.KR || {};
       ['삶의 만족도', `${D.happiness.score}/10 (세계 ${D.happiness.rank}위)`],
     ];
     const regionRows = D.regions.map(r => `<tr><th>${r.short}</th><td>출생 ${(r.share2024 * 100).toFixed(1)}% · 아파트 ${r.apt}억 · 전세 ${r.jeonse}억 · 월세 ${r.rent}만</td></tr>`).join('');
-    return `<h2>한국 통계</h2><p class="text">${D.version}. 값은 통계청 공표치와 근사 추정을 섞어 쓴 모형 입력값입니다.</p>
-      <table class="stats-table">${rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table>
-      <h3 style="margin-top:16px">공통 지표 (2023~2025)</h3><table class="stats-table">${fixed.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table>
-      <h3 style="margin-top:16px">지역 (2024년 출생 비율 · 2025년 가격)</h3><table class="stats-table">${regionRows}</table>
-      <h3 style="margin-top:16px">출처</h3><ul style="padding-left:18px;font-size:.85rem;color:var(--muted)">${D.sources.map(x => `<li><b>${esc(x[0])}</b> — ${esc(x[1])}</li>`).join('')}</ul>`;
+    return `<h2>한국 통계</h2><p class="text">${D.version}. 값은 통계청 공표치와 근사 추정을 섞어 쓴 모형 입력값입니다. 생애 단계별로 실제 계산에 쓰는 수치를 모두 적었습니다.</p>
+      <details open><summary>태어나는 해 기준 지표<small>${y}년</small></summary><table class="stats-table">${rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table></details>
+      ${UI.stageStatsHTML()}
+      <details><summary>공통 지표<small>2023~2025</small></summary><table class="stats-table">${fixed.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table></details>
+      <details><summary>지역<small>2024년 출생 비율 · 2025년 가격</small></summary><table class="stats-table">${regionRows}</table></details>
+      <details><summary>출처</summary><ul style="padding-left:18px;font-size:.85rem;color:var(--muted)">${D.sources.map(x => `<li><b>${esc(x[0])}</b> — ${esc(x[1])}</li>`).join('')}</ul></details>`;
   };
 
   UI.aboutHTML = () => `<h2>이용 안내</h2>
@@ -209,6 +211,7 @@ window.KR = window.KR || {};
       <li><b>생각 멈춤</b> 5, 15, 30, 50, 70세에 시간이 멈추고 한 줄을 남길 수 있습니다. 메뉴에서 끌 수 있습니다.</li>
       <li><b>스탯</b> 건강·행복·지식·관계(0~100)는 가능성을 높이거나 낮출 뿐, 결과를 정하지 않습니다.</li>
       <li><b>돈</b> 모든 금액은 2024년 원화 가치 기준 근사치입니다. 지난 세상의 소득과 집값은 당시 실질 수준으로 환산했습니다.</li>
+      <li><b>오늘의 순위</b> 서버가 연결돼 있으면 삶이 끝날 때 기록이 익명으로 올라가고, 그날 플레이한 모든 사람 가운데 몇 위인지 보여 줍니다. 닉네임은 선택이며 홈에서 입력합니다. 서버 설정은 저장소의 server 폴더를 보세요.</li>
       <li><b>순위</b> 삶이 끝나면 같은 해에 태어난 500명을 자동으로 살게 한 뒤, 수명·행복·관계·재산·생애 소득에서 몇 번째인지 보여 줍니다. 인생 점수는 수명·행복·관계·재산 네 항목의 백분위 평균(0~100)입니다. 홈의 순위표에서는 이 기기에 남은 삶들끼리 겨룹니다.</li>
       <li><b>재산·보유</b> 순자산은 현금·예금·주식·코인·전세 보증금·집 시세·자동차에서 빚과 대출을 뺀 값입니다. 보유한 것 탭에서 집, 차, 반려동물, 스마트폰 같은 물건을 봅니다.</li>
       <li><b>다루지 않는 것</b> 자살은 한국의 주요 사망 원인이지만 이 시뮬레이션에서는 다루지 않습니다. 15세 이상에게 권합니다.</li>
@@ -228,7 +231,7 @@ window.KR = window.KR || {};
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
   UI.fmtMetric = (k, v) => k === 'wealth' || k === 'income' ? U.fmtMan(v) : k === 'age' ? `${v}세` : k === 'score' ? `${v}점` : `${Math.round(v)}`;
@@ -257,6 +260,21 @@ window.KR = window.KR || {};
     const sel = `<select id="rank-key" style="width:auto;padding:4px 8px">${S.RANK_KEYS.map(k => `<option value="${k}" ${k === key ? 'selected' : ''}>${S.RANK_LABEL[k]}</option>`).join('')}</select>`;
     const table = rows.length ? `<table class="ranking-table"><tr><th>#</th><th>삶</th><th style="text-align:right">${S.RANK_LABEL[key]}</th><th style="text-align:right">코호트</th></tr>${rows.map((x, i) => { const sm = x.l.summary; const rk = x.l.rank && x.l.rank[key]; return `<tr><td>${i + 1}</td><td>${esc(sm.name)} <span class="meta">${sm.birthYear}–${x.l.death ? x.l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'}</span></td><td class="v">${UI.fmtMetric(key, x.v)}</td><td class="v meta">${rk ? `상위 ${rk.top}%` : '—'}</td></tr>`; }).join('')}</table>` : '<p class="help">아직 끝까지 살아 낸 삶이 없습니다.</p>';
     return `<h2>순위표</h2><p class="text">이 기기에 남은 삶들의 순위. 코호트 열은 같은 해에 태어난 ${lives[0] && lives[0].rank ? lives[0].rank.n : 500}명(자동 진행) 중 상위 몇 %인지입니다.</p><div class="actions" style="margin:0 0 10px">${sel}</div>${table}`;
+  };
+  UI.globalRankLine = (rec, err) => {
+    const el = $('d-global'); if (!el) return;
+    if (err) { el.innerHTML = `<span class="err">오늘의 순위 서버에 연결하지 못했습니다.</span>`; return; }
+    const g = rec.global; if (!g) { el.innerHTML = ''; return; }
+    el.innerHTML = `<span>오늘 플레이한 <b>${g.n}명</b> 중 인생 점수 <b>${g.score.rank}위</b> · 재산 ${g.wealth.rank}위 · 수명 ${g.age.rank}위 · 행복 ${g.happy.rank}위</span><button class="small" id="btn-today-from-death">오늘의 순위 보기</button>`;
+  };
+  UI.todayHTML = (data, key, days, myIds, err) => {
+    const sel = `<select id="today-key" style="width:auto;padding:4px 8px">${S.RANK_KEYS.map(k => `<option value="${k}" ${k === key ? 'selected' : ''}>${S.RANK_LABEL[k]}</option>`).join('')}</select>`;
+    const daySel = days && days.length ? `<select id="today-day" style="width:auto;padding:4px 8px">${days.map(d => `<option value="${d.day}" ${data && d.day === data.day ? 'selected' : ''}>${d.day}${d.day === (data && data.today) ? ' (오늘)' : ''} · ${d.n}명</option>`).join('')}</select>` : '';
+    let body;
+    if (err) body = `<p class="help">${esc(err)}</p>`;
+    else if (!data.rows.length) body = `<p class="help">${data.day}에는 아직 기록이 없습니다. 첫 번째가 되어 보세요.</p>`;
+    else body = `<table class="ranking-table"><tr><th>#</th><th>삶</th><th style="text-align:right">${S.RANK_LABEL[key]}</th><th style="text-align:right">점수</th></tr>${data.rows.map(r => `<tr class="${myIds.includes(r.id) ? 'me' : ''}"><td>${r.rank}</td><td>${r.nick ? `<b>${esc(r.nick)}</b> ` : ''}${esc(r.name)} <span class="meta">${r.birthYear}년생 · ${esc(r.region)} · ${r.sex === 'M' ? '남' : '여'} · ${r.deathAge}세</span></td><td class="v">${UI.fmtMetric(key, r.value)}</td><td class="v meta">${r.score}점</td></tr>`).join('')}</table>`;
+    return `<h2>오늘의 순위</h2><p class="text">${data ? `${data.day} 플레이한 ${data.n}명.` : ''} 서버에 올라간 모든 사람의 기록으로, 내 기록은 색으로 표시됩니다.</p><div class="actions" style="margin:0 0 10px;flex-wrap:wrap">${daySel}${sel}</div>${body}`;
   };
   UI.deathSummary = (s, rec) => {
     const sm = S.summary(s), r = D.regions[s.region];

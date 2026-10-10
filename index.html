@@ -20,7 +20,7 @@
   <header class="hero">
     <p class="kicker">한국에서 무작위로 태어나는 인생 시뮬레이션</p>
     <h1>5천만 분의 1</h1>
-    <p class="lead">오늘 한국에서는 약 <b id="home-births">650</b>명의 아이가 태어납니다. 당신은 그중 하나로 태어나 한 번뿐인 삶을 끝까지 살아 봅니다. 나라도, 지역도, 부모도 고를 수 없습니다.</p>
+    <p class="lead">오늘 한국에서는 약 <b id="home-births">650</b>명의 아이가 태어납니다. 그중 하나로 태어나 한 번뿐인 삶을 끝까지 살아 봅니다. 나라도, 지역도, 부모도 고를 수 없습니다.</p>
   </header>
 
   <div class="card">
@@ -57,6 +57,7 @@
     <div class="actions">
       <button class="primary big" id="btn-born">태어나기</button>
       <button class="ghost" id="btn-continue" hidden>이어하기</button>
+      <input type="text" id="nick" class="nick" maxlength="12" placeholder="닉네임 (오늘의 순위용, 선택)">
     </div>
   </div>
 
@@ -64,6 +65,7 @@
     <a href="#" id="btn-lives">전생 기록 <span id="lives-count"></span></a>
     <a href="#" id="btn-memorial-open">추모관 <span id="memorial-count"></span></a>
     <a href="#" id="btn-ranking">순위표</a>
+    <a href="#" id="btn-today">오늘의 순위</a>
     <a href="#" data-open="stats">한국 통계</a>
     <a href="#" data-open="about">이용 안내</a>
     <a href="#" data-open="privacy">개인정보</a>
@@ -153,6 +155,7 @@
     <p id="d-sub" class="lead"></p>
     <div id="d-summary" class="summary"></div>
     <div id="d-rank" class="rank"></div>
+    <div id="d-global" class="rank global"></div>
     <div id="d-items" class="items"></div>
     <div id="d-notes" class="notes"></div>
     <canvas id="share-canvas" width="1080" height="1350" hidden></canvas>
@@ -175,6 +178,7 @@
 <div id="toast" class="toast" hidden></div>
 </div>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/sim.js"></script>
 <script src="js/decisions.js"></script>

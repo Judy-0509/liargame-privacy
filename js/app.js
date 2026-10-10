@@ -3,6 +3,43 @@
   const LS = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }, del: k => { try { localStorage.removeItem(k); } catch (e) { } } };
   const A = { s: null, timer: null, reveals: [], running: false, speed: 1, minutes: 30, era: 'now', birthYear: 2026, pausesOn: true, auto: false, music: null, busy: false };
 
+  const CFG = window.KR_CONFIG || {};
+  function apiBase() {
+    const q = new URLSearchParams(location.search);
+    if (q.has('api')) { const v = q.get('api').trim(); if (v) LS.set('krlife.apiBase', v); else LS.del('krlife.apiBase'); }
+    return (LS.get('krlife.apiBase', '') || CFG.apiBase || '').replace(/\/$/, '');
+  }
+  async function api(path, opts) {
+    const base = apiBase(); if (!base) throw new Error('서버 주소가 설정되지 않았습니다. js/config.js의 apiBase를 채우세요.');
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+    try { const r = await fetch(base + path, { ...(opts || {}), signal: ctl.signal, headers: { 'Content-Type': 'application/json' } }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+    finally { clearTimeout(t); }
+  }
+  async function submitLife(rec) {
+    if (!apiBase()) return;
+    const sm = rec.summary;
+    const body = { nick: LS.get('krlife.nick', ''), name: sm.name, sex: sm.sex, region: sm.region, birthYear: sm.birthYear, deathAge: rec.death.age, deathYear: rec.death.year, cause: rec.death.cause, degree: sm.degree, job: sm.job, married: sm.married, kids: sm.kids, score: rec.rank.score.value, metrics: rec.metrics, cohortN: rec.rank.n, cohortTop: rec.rank.score.top, version: CFG.version || '0.4' };
+    try {
+      const r = await api('/api/lives', { method: 'POST', body: JSON.stringify(body) });
+      rec.global = { id: r.id, day: r.day, ...r.rank };
+      const ids = LS.get('krlife.myIds', []); ids.unshift(r.id); LS.set('krlife.myIds', ids.slice(0, 200));
+      updateLife(rec); if (A.rec === rec) { UI.globalRankLine(rec); const b = $('btn-today-from-death'); if (b) b.onclick = () => openToday('score', r.day); }
+    } catch (e) { if (A.rec === rec) UI.globalRankLine(rec, e); }
+  }
+  async function openToday(key, day) {
+    key = key || LS.get('krlife.todayKey', 'score');
+    const myIds = LS.get('krlife.myIds', []);
+    if (!apiBase()) { UI.modal(UI.todayHTML(null, key, [], myIds, '오늘의 순위 서버가 설정되지 않았습니다. 저장소의 server/README.md를 따라 맥미니에서 서버를 띄우고 js/config.js의 apiBase에 주소를 넣으세요.')); return; }
+    const body = UI.modal(`<h2>오늘의 순위</h2><p class="text">불러오는 중…</p>`);
+    try {
+      const [days, data] = await Promise.all([api('/api/days'), api(`/api/leaderboard?key=${key}&limit=100${day ? '&day=' + day : ''}`)]);
+      const list = days.days.slice(); if (!list.some(d => d.day === days.today)) list.unshift({ day: days.today, n: data.day === days.today ? data.n : 0 });
+      body.innerHTML = UI.todayHTML({ ...data, today: days.today }, key, list, myIds);
+      const ks = body.querySelector('#today-key'); if (ks) ks.onchange = () => { LS.set('krlife.todayKey', ks.value); openToday(ks.value, data.day); };
+      const ds = body.querySelector('#today-day'); if (ds) ds.onchange = () => openToday(key, ds.value);
+    } catch (e) { body.innerHTML = UI.todayHTML(null, key, [], myIds, '서버에 연결하지 못했습니다. ' + e.message); }
+  }
+
   const BENCH_N = 500;
   const benchKey = y => 'krlife.bench.' + y;
   function loadBench(y) { const b = LS.get(benchKey(y), null); return b && b.v === S.BENCH_VERSION && b.n >= BENCH_N ? b : null; }
@@ -128,6 +165,8 @@
     A.rec = rec; rec.lives = lives.slice(0, 30);
     UI.deathSummary(s, rec);
     delete rec.lives;
+    $('d-global').innerHTML = apiBase() ? '<span class="err">오늘의 순위에 올리는 중…</span>' : '';
+    submitLife(rec);
     show('screen-death');
   }
 
@@ -300,6 +339,9 @@
     $('btn-lives').onclick = e => { e.preventDefault(); openLives(); };
     $('btn-memorial-open').onclick = e => { e.preventDefault(); openMemorial(); };
     $('btn-ranking').onclick = e => { e.preventDefault(); openRanking(); };
+    $('btn-today').onclick = e => { e.preventDefault(); openToday(); };
+    $('nick').value = LS.get('krlife.nick', ''); $('nick').onchange = e => LS.set('krlife.nick', e.target.value.trim().slice(0, 12));
+    apiBase();
     $('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); };
     setTab(LS.get('krlife.tab', 'record'));
     document.querySelectorAll('[data-open]').forEach(a => a.onclick = e => { e.preventDefault(); const k = a.dataset.open; UI.modal(k === 'stats' ? UI.statsHTML(A.birthYear) : k === 'about' ? UI.aboutHTML() : k === 'privacy' ? UI.privacyHTML() : UI.notesHTML()); });
