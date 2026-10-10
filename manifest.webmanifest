@@ -1,0 +1,12 @@
+{
+  "name": "5천만 분의 1",
+  "short_name": "5천만분의1",
+  "description": "한국 통계로 무작위로 태어나, 한 번뿐인 삶을 살아보는 인생 시뮬레이션",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14151a",
+  "theme_color": "#14151a",
+  "lang": "ko",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
