@@ -174,6 +174,7 @@ input[type=number], select, textarea { width: 100%; background: var(--bg2); bord
 .apply-row.on { border-color: var(--accent); }
 .apply-row .nm small { display: block; color: var(--muted); font-size: .76rem; }
 .apply-row .ap { display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; }
+.apply-row .apgrp { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .apply-row .lab { color: var(--muted); font-size: .8rem; }
 .apply-row .lab b { color: var(--text); font-variant-numeric: tabular-nums; }
 .ctr { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
