@@ -1,4 +1,4 @@
-const CACHE = 'kr-life-v1';
+const CACHE = 'kr-life-v2';
 const FILES = ['./', './index.html', './styles.css', './manifest.webmanifest', './icon.svg', './js/data.js', './js/sim.js', './js/pixel.js', './js/admission.js', './js/decisions.js', './js/youth.js', './js/config.js', './js/ui.js', './js/app.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

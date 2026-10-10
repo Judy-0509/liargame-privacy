@@ -16,7 +16,8 @@ window.KR = window.KR || {};
     leaveCurrent(s);
     if (kind === 'jeonse') { const price = S.homePrice(s, 'jeonse'); m.deposit = price; m.jeonseOwn = Math.min(m.assets, price); m.assets -= m.jeonseOwn; m.jeonseLoan = price - m.jeonseOwn; s.housing = 'jeonse'; return { price, loan: m.jeonseLoan }; }
     if (kind === 'own') {
-      const price = S.homePrice(s, 'own'); const cap = Math.max(S.maxLoan(s), price * 0.3);
+      let price = S.homePrice(s, 'own'); const cap = Math.max(S.maxLoan(s), price * 0.3);
+      if (s.flags.subscription === true && U.chance(s, 0.3)) { price = Math.round(price * 0.85); s.flags.subscription = 'used'; S.log(s, '청약에 당첨됐다. 시세보다 15% 싼 분양가로 집을 마련했다.', 'home'); s.yearShock.happy += 6; }
       const cash = Math.min(m.assets, price); let loan = Math.min(cap, Math.max(0, price - cash));
       const paid = Math.min(price, cash + loan); loan = Math.max(0, paid - cash);
       m.assets -= paid - loan; m.loan = Math.round(loan); m.loanAt = s.age; m.homeSize = paid / price; m.homeValue = Math.round(paid); s.housing = 'own';
@@ -92,7 +93,7 @@ window.KR = window.KR || {};
       options: s => {
         const d = s.parents.decile, p = d <= 3 ? D.edu.tutoring[0] : d <= 7 ? D.edu.tutoring[1] : D.edu.tutoring[2];
         return [
-          { label: '다닌다', hint: '스펙이 더 오른다. 저녁이 사라진다.', auto: () => p, focus: 'study', apply: s => { s.edu.tutoring = true; S.log(s, s.taken.tutoring_choice > 1 ? '학원을 계속 다녔다.' : '학원에 다니기 시작했다.', 'edu'); } },
+          { label: '다닌다', hint: '스펙이 더 오른다. 저녁이 사라진다.', auto: () => p, focus: 'study', apply: s => { const yrs = Math.max(1, 17 - s.age); const b = S.scorePct(s, false); s.edu.tutoring = true; const t2 = { ...s, stats: { ...s.stats, know: s.stats.know + yrs * 1.0 } }; S.oddsLog(s, '예상 수능 백분위', b / 100, S.scorePct(t2, false) / 100); S.log(s, s.taken.tutoring_choice > 1 ? '학원을 계속 다녔다.' : '학원에 다니기 시작했다.', 'edu'); } },
           { label: '다니지 않는다', hint: '혼자 공부한다. 시간이 생긴다.', auto: () => 1 - p, focus: 'rest', apply: s => { s.edu.tutoring = false; S.bump(s, 'happy', 1); S.log(s, '학원 없이 혼자 공부하기로 했다.', 'edu'); } },
         ];
       },
@@ -101,7 +102,7 @@ window.KR = window.KR || {};
       id: 'smoke_choice', when: never, max: 1,
       title: '담배를 배울까', text: s => `또래 ${s.sex === 'M' ? '남성' : '여성'}의 ${Math.round(U.interp(D.byYear[s.sex === 'M' ? 'smokeM' : 'smokeF'], s.year) * 100)}%가 피운다.`,
       options: s => { const r = U.interp(D.byYear[s.sex === 'M' ? 'smokeM' : 'smokeF'], s.year); return [
-        { label: '피운다', hint: '체력이 깎이고 암 위험이 오른다.', auto: () => r, apply: s => { s.hs.smoker = true; S.log(s, '담배를 피우기 시작했다.', 'health'); } },
+        { label: '피운다', hint: '체력이 깎이고 암·사망 위험이 오른다.', auto: () => r, apply: s => { s.hs.smoker = true; S.oddsLog(s, '45세 이후 사망 위험', 1, 1.4); S.oddsLog(s, '폐암 위험', 1, 2.5); S.log(s, '담배를 피우기 시작했다.', 'health'); } },
         { label: '피우지 않는다', hint: '', auto: () => 1 - r, focus: 'health', apply: () => { } },
       ]; },
     },
@@ -288,6 +289,15 @@ window.KR = window.KR || {};
         { label: '표준 치료 (건강보험)', hint: s => `연 ${money(450 * idx(s))} 안팎. 산정특례로 본인부담 5%.`, auto: () => 0.75, apply: s => { if (s.hs.cancer) s.hs.cancer.treat = 'standard'; S.log(s, '치료를 시작했다. 병원이 일상이 됐다.', 'health'); } },
         { label: '비급여까지 적극 치료', hint: s => `연 ${money(2500 * idx(s))}. 생존 가능성이 조금 오른다.`, hide: s.money.assets + S.maxLoan(s) < 2500 * idx(s), auto: () => 0.25, apply: s => { if (s.hs.cancer) s.hs.cancer.treat = 'aggressive'; S.log(s, '할 수 있는 치료는 다 받기로 했다.', 'health'); } },
         { label: '치료를 받지 않는다', hint: '남은 시간을 집에서.', auto: () => s.age >= 85 ? 0.3 : 0.02, apply: s => { if (s.hs.cancer) s.hs.cancer.treat = 'none'; S.log(s, '치료 대신 남은 시간을 택했다.', 'health'); } },
+      ],
+    },
+    {
+      id: 'health_alarm', when: never, valid: s => !s.hs.careHome,
+      title: '몸이 신호를 보낸다', text: s => `체력 ${Math.round(s.stats.health)}. 지금 손쓰면 위험을 줄일 수 있다.${s.hs.cond.length ? ` 지병: ${s.hs.cond.join(', ')}.` : ''}`,
+      options: s => [
+        { label: '정밀검진과 치료', hint: s => `${money(300 * idx(s))}. 체력 +8, 3년간 사망 위험 15% 감소.`, auto: () => 0.5, focus: 'health', apply: s => { S.cost(s, 300 * idx(s)); S.bump(s, 'health', 8); s.hs.caredAt = s.age; S.oddsLog(s, '향후 3년 사망 위험', 1, 0.85); S.log(s, '병원에 다니기 시작했다. 약봉지가 늘었지만 숨이 트였다.', 'health'); } },
+        { label: '운동과 휴식', hint: '체력 +5, 멘탈 +2. 일에서 조금 물러난다.', auto: () => 0.3, focus: 'health', apply: s => { S.bump(s, 'health', 5); S.bump(s, 'happy', 2); S.bump(s, 'know', -1); s.hs.caredAt = s.age; S.log(s, '새벽 달리기를 시작했다. 야근을 줄였다.', 'health'); } },
+        { label: '무시한다', hint: '5년간 사망 위험 30% 증가.', auto: () => 0.2, focus: 'work', apply: s => { s.hs.ignoredAt = s.age; S.oddsLog(s, '향후 5년 사망 위험', 1, 1.3); S.log(s, '바빠서 병원을 미뤘다.', 'health'); } },
       ],
     },
     {

@@ -48,16 +48,66 @@ window.KR = window.KR || {};
     $('moneyline').innerHTML = parts.map(p => `<span>${p}</span>`).join('');
   };
 
+  const ICON = { edu: '🎓', work: '💼', love: '❤️', kid: '🍼', family: '👪', home: '🏠', health: '💊', warn: '⚠️', mil: '🎖️', money: '💰', item: '🛍️', hist: '📰', flavor: '✨', note: '✍️', odds: '🎲', youth: '🌱', birth: '👶', death: '🕯️' };
+  UI.icon = k => ICON[k] || '·';
+  const KEY_KINDS = ['death', 'birth', 'edu', 'work', 'love', 'kid', 'home', 'mil', 'health', 'money', 'family', 'hist'];
+  const decadeOf = a => Math.floor(a / 10);
+  const decadeLabel = d => d === 0 ? '0~9세' : `${d * 10}대`;
+  const short = (t, n) => t.length > n ? t.slice(0, n) + '…' : t;
   UI.logItem = (e, i) => {
     const li = document.createElement('li'); li.className = e.k || 'life'; li.dataset.i = i;
-    li.innerHTML = `<span class="a">${e.a}세</span><span class="t">${esc(e.t)}</span><button class="star ${e.star ? 'on' : ''}" title="즐겨찾기">${e.star ? '★' : '☆'}</button>`;
+    li.innerHTML = `<span class="ic">${UI.icon(e.k)}</span><span class="a">${e.a}세</span><span class="t">${esc(e.t)}</span><button class="star ${e.star ? 'on' : ''}" title="즐겨찾기">${e.star ? '★' : '☆'}</button>`;
     return li;
   };
-  UI.renderLog = s => {
-    const ul = $('log'); ul.innerHTML = '';
-    for (let i = s.log.length - 1; i >= 0; i--) ul.appendChild(UI.logItem(s.log[i], i));
+  const decadeSummary = (s, d) => {
+    const es = s.log.filter(e => decadeOf(e.a) === d);
+    const key = es.filter(e => KEY_KINDS.includes(e.k) || e.star).sort((x, y) => (x.star ? -1 : KEY_KINDS.indexOf(x.k)) - (y.star ? -1 : KEY_KINDS.indexOf(y.k))).slice(0, 2).sort((x, y) => x.a - y.a);
+    return { n: es.length, txt: key.map(e => short(e.t, 22)).join(' · ') };
   };
-  UI.prependLog = (s, e) => { const ul = $('log'); ul.insertBefore(UI.logItem(e, s.log.indexOf(e)), ul.firstChild); };
+  const refreshGroup = (s, det) => { const sm = decadeSummary(s, +det.dataset.d); det.querySelector('.sum').textContent = det.open ? '' : sm.txt; det.querySelector('.n').textContent = sm.n; };
+  const groupEl = (s, d, open) => {
+    const det = document.createElement('details'); det.dataset.d = d; det.open = open;
+    det.innerHTML = `<summary><b>${decadeLabel(d)}</b><span class="sum"></span><span class="n"></span></summary><ul></ul>`;
+    det.addEventListener('toggle', () => refreshGroup(s, det));
+    return det;
+  };
+  UI.renderLog = s => {
+    const box = $('log'); box.innerHTML = '';
+    const ds = [...new Set(s.log.map(e => decadeOf(e.a)))].sort((a, b) => b - a);
+    ds.forEach((d, idx) => {
+      const det = groupEl(s, d, idx === 0); const ul = det.querySelector('ul');
+      for (let i = s.log.length - 1; i >= 0; i--) if (decadeOf(s.log[i].a) === d) ul.appendChild(UI.logItem(s.log[i], i));
+      box.appendChild(det); refreshGroup(s, det);
+    });
+  };
+  UI.prependLog = (s, e) => {
+    const box = $('log'); const d = decadeOf(e.a);
+    let det = box.firstElementChild;
+    if (!det || +det.dataset.d !== d) { if (det) { det.open = false; refreshGroup(s, det); } det = groupEl(s, d, true); box.insertBefore(det, box.firstChild); }
+    const ul = det.querySelector('ul'); ul.insertBefore(UI.logItem(e, s.log.indexOf(e)), ul.firstChild);
+    det.querySelector('.n').textContent = ul.children.length;
+  };
+  UI.toggleTimeline = () => { const box = $('log'), all = [...box.querySelectorAll('details')]; const open = all.some(d => !d.open); all.forEach(d => { d.open = open; }); $('btn-expand').textContent = open ? '접기' : '전체 펼치기'; };
+  UI.renderChapter = s => { const next = S.SNAP_AGES.find(a => a > s.age); const el = $('chapter'); if (el) el.textContent = s.alive && next ? `다음 성적표 ${next}세` : ''; };
+  const CH_TITLE = { 12: '초등 시절', 19: '청소년기', 29: '20대', 39: '30대', 49: '40대', 59: '50대', 69: '60대' };
+  const ST_LABEL = { know: '스펙', rel: '인맥', health: '체력', happy: '멘탈', net: '재산' };
+  UI.chapterHTML = (s, bench, age) => {
+    const from = age - 9;
+    const es = s.log.filter(e => e.a >= from && e.a <= age);
+    const picks = es.filter(e => (KEY_KINDS.includes(e.k) && e.k !== 'hist') || e.star).sort((x, y) => (x.star ? -1 : KEY_KINDS.indexOf(x.k)) - (y.star ? -1 : KEY_KINDS.indexOf(y.k))).slice(0, 6).sort((x, y) => x.a - y.a);
+    const odds = (s.odds || []).filter(o => o.a >= from && o.a <= age);
+    const st = S.chapterStanding(s, bench, age);
+    const voices = ['friend', 'parent', 'spouse', 'kid', 'first'].map(w => S.voice(s, w)).filter(Boolean).slice(0, 3);
+    const standing = st ? `<p class="text">같은 형편(${st.label}) ${st.n}명 가운데 <b>상위 ${Math.max(1, 100 - st.score)}%</b>. 출발선이 같은 아이들과 비교한 지금 위치입니다.</p><div class="standing">${['know', 'rel', 'health', 'happy', 'net'].map(k => `<div><span>${ST_LABEL[k]}</span><div class="bar"><i style="width:${st[k]}%"></i></div><em>${st[k]}%</em></div>`).join('')}</div>` : '<p class="help">같은 해에 태어난 500명의 삶을 아직 계산하는 중입니다. 다음 성적표부터 비교가 나옵니다.</p>';
+    return `<p class="kicker">챕터 성적표 · ${age}세 · ${s.year}년</p><h2>${CH_TITLE[age] || age + '세'}</h2>
+      ${standing}
+      ${picks.length ? `<h3>지난 10년</h3><ul class="log chlog">${picks.map(e => `<li class="${e.k}"><span class="a">${e.a}세</span><span class="t">${UI.icon(e.k)} ${esc(e.t)}</span><span></span></li>`).join('')}</ul>` : ''}
+      ${odds.length ? `<h3>내 선택이 바꾼 확률</h3><ul class="log chlog">${odds.map(o => `<li class="odds"><span class="a">${o.a}세</span><span class="t">🎲 ${esc(o.label)} ${o.b}% → <b>${o.c}%</b></span><span></span></li>`).join('')}</ul>` : ''}
+      ${voices.length ? `<div class="voices">${voices.map(v => `<p>${esc(v)}</p>`).join('')}</div>` : ''}
+      <textarea id="ch-note" rows="2" maxlength="120" placeholder="이 시절에 한 줄 (비워 두어도 됩니다)"></textarea>
+      <div class="actions"><button class="primary" id="ch-go">계속</button></div>`;
+  };
+  UI.badgesHTML = (got, now) => `<h2>도전과제</h2><p class="text">${got.length}/${S.BADGES.length} 달성. 한 생이 끝날 때 기록됩니다.</p><div class="badges">${S.BADGES.map(b => { const on = got.includes(b[0]); return `<div class="badge ${on ? 'on' : 'off'}"><b>${on ? '🏅' : '○'} ${esc(b[1])}${now && now.includes(b[0]) ? ' <small>(지금 삶)</small>' : ''}</b><small>${esc(b[2])}</small></div>`; }).join('')}</div>`;
 
   UI.renderMap = s => {
     const el = $('lifemap'); const n = Math.max(100, s.map.length + 5);
@@ -107,6 +157,15 @@ window.KR = window.KR || {};
     const inc = m.income ? `<p class="help">연소득 ${U.fmtMan(m.income)} · 연지출 ${U.fmtMan(m.spend)}${m.pension ? ` · 연금 월 ${U.fmtMan(m.pension)}` : ''}${s.love.married && s.love.spouse && s.love.spouse.alive && s.love.spouse.works ? ' · 맞벌이' : ''}</p>` : '';
     $('assets').innerHTML = bar + table + inc;
     $('items').innerHTML = UI.itemsHTML(S.itemList(s));
+    const hg = $('hgraph'), h = s.hHist || [];
+    if (hg) {
+      if (h.length >= 2) {
+        const W = 320, H = 60, P = 4, vals = h.map(x => x[1]), mn = Math.min(...vals), mx = Math.max(...vals);
+        const pts = h.map((x, i) => `${(P + i / (h.length - 1) * (W - 2 * P)).toFixed(1)},${(H - P - (x[1] - mn) / Math.max(1e-6, mx - mn) * (H - 2 * P - 12)).toFixed(1)}`);
+        const last = h[h.length - 1], prev = h[Math.max(0, h.length - 11)], ch = Math.round((last[1] / prev[1] - 1) * 100);
+        hg.innerHTML = `<path d="M${pts.join(' L')}" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="${P}" y="10" font-size="9" fill="var(--muted)">${h[0][0]}년</text><text x="${W - P}" y="10" font-size="9" text-anchor="end" fill="var(--text)">${last[0]}년 ${last[1].toFixed(2)} · 10년 ${ch > 0 ? '+' : ''}${ch}%</text>`;
+      } else hg.innerHTML = `<text x="4" y="34" font-size="10" fill="var(--muted)">몇 해 지나면 집값 흐름이 그려집니다.</text>`;
+    }
   };
   UI.renderAll = s => { UI.renderTop(s); UI.renderStats(s); UI.renderLog(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s); UI.renderAssets(s); };
   UI.livesHTML = lives => `<h2>전생 기록</h2><p class="text">이 브라우저에 남은 최근 30개의 삶.</p><ul class="lives">${lives.map(l => { const sm = l.summary; return `<li><div><b>${esc(sm.name)}</b> <span class="meta">${sm.birthYear}–${l.death ? l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'} · ${l.death ? `${l.death.age}세, ${esc(l.death.cause)}` : ''}</span></div><div class="actions" style="margin:0"><button class="small" data-view="${l.id}">다시 보기</button>${l.memorial ? '' : `<button class="small ghost" data-mem="${l.id}">추모관</button>`}</div></li>`; }).join('') || '<li class="meta">아직 없습니다.</li>'}</ul><div class="actions"><button class="ghost small" id="btn-clear-lives">모두 지우기</button></div>`;
@@ -207,10 +266,15 @@ window.KR = window.KR || {};
   UI.aboutHTML = () => `<h2>이용 안내</h2>
     <p class="text">5천만 분의 1은 한국의 공표 통계로 만든 인생 시뮬레이션입니다. 나라도, 지역도, 부모도 고를 수 없습니다. 태어나는 해와 세상(지난·지금·다가올)만 고른 뒤, 한 생애를 끝까지 지켜봅니다.</p>
     <ul style="padding-left:18px">
-      <li><b>시간</b> 한 해가 수십 초 안에 흐릅니다. 일시정지와 1×~16× 배속, "다음 결정"으로 건너뛸 수 있습니다.</li>
-      <li><b>결정</b> 진학, 병역, 일, 사랑, 아이, 집, 치료 같은 갈림길에서 시간이 멈추고 묻습니다. 선택은 삶을 바꾸지만, 태어난 집과 해의 통계를 완전히 벗어나기는 어렵습니다.</li>
+      <li><b>턴제</b> 시간은 저절로 흐르지 않습니다. "다음 해 ▶"를 누르면 한 해가 지나고, "다음 갈림길 ▶▶"는 결정이나 성적표가 나올 때까지 조용한 해를 건너뜁니다. Space·Enter는 다음 해, N은 다음 갈림길, P는 자동 재생입니다.</li>
+      <li><b>갈림길</b> 진학, 병역, 일, 사랑, 아이, 집, 치료 같은 결정에서 묻습니다. 선택지에는 바뀌는 확률이 적혀 있고, 결정 뒤에는 "확률 ○% → ○%"가 연표에 남습니다. 태어난 집과 해의 통계를 완전히 벗어나기는 어렵습니다.</li>
       <li><b>자동 결정</b> 켜 두면 시뮬레이션이 통계적으로 흔한 쪽을 고릅니다. 이번 해의 초점은 자동 선택과 스탯 변화에 영향을 줍니다.</li>
-      <li><b>생각 멈춤</b> 5, 15, 30, 50, 70세에 시간이 멈추고 한 줄을 남길 수 있습니다. 메뉴에서 끌 수 있습니다.</li>
+      <li><b>챕터 성적표</b> 12·19·29·39·49·59·69세에 지난 10년을 돌아봅니다. 같은 형편(소득 분위 묶음)에서 태어난 아이들 가운데 지금 위치, 내 선택이 바꾼 확률, 가족·친구의 한마디, 한 줄 메모.</li>
+      <li><b>출발선 대비</b> 삶이 끝나면 전체 500명 중 순위와 함께, 같은 형편에서 태어난 아이들 중 순위를 따로 보여 줍니다. 가난한 집에서 중간까지 간 삶이 부유한 집에서 중간에 머문 삶보다 높게 나옵니다.</li>
+      <li><b>오늘의 아기</b> 날짜로 정해진 같은 아이로 모두가 시작합니다. 오늘의 순위에서 "오늘의 아기만"으로 걸러 같은 출발선끼리 겨룹니다. 삶이 끝난 뒤 "같은 아이로 다시" 링크를 친구에게 보내면 같은 아이로 태어납니다.</li>
+      <li><b>자녀로 이어하기</b> 자녀가 있으면 그 아이로 다음 세대를 삽니다. 부모의 형편과 재산(70%)이 다음 삶의 출발선이 됩니다.</li>
+      <li><b>도전과제</b> 백세, 수저 역전, 서울 아파트, 평생 금연 같은 16가지. 한 생이 끝날 때 기록됩니다.</li>
+      <li><b>건강 경고</b> 큰 병에 앞서 "건강 검진에서 경고가 나왔다" 같은 신호가 먼저 오고, 무시하면 몇 해 동안 위험이 올라갑니다.</li>
       <li><b>스탯</b> 체력(몸, 병과 수명), 멘탈(마음, 소득·가족·빚의 영향을 받고 번아웃을 가름), 스펙(공부·학력·자격·경력, 입시와 취업 확률), 인맥(가족·친구·동료, 결혼·추천 취업·노년의 외로움). 0~100이며 가능성을 높이거나 낮출 뿐 결과를 정하지 않습니다.</li>
       <li><b>돈</b> 모든 금액은 2024년 원화 가치 기준 근사치입니다. 지난 세상의 소득과 집값은 당시 실질 수준으로 환산했습니다.</li>
       <li><b>오늘의 순위</b> 서버가 연결돼 있으면 삶이 끝날 때 기록이 익명으로 올라가고, 그날 플레이한 모든 사람 가운데 몇 위인지 보여 줍니다. 닉네임은 선택이며 홈에서 입력합니다. 서버 설정은 저장소의 server 폴더를 보세요.</li>
@@ -233,7 +297,7 @@ window.KR = window.KR || {};
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.9</b> — 네 스탯을 체력·멘탈·스펙·인맥으로 재정의(인맥이 취업·이직 확률에, 체력이 번아웃에 반영). 상단에 지금 상태를 그리는 픽셀 장면(계절·해의 위치·집·복장·표정·안경·배우자·자녀·반려동물·차·재산)을 추가.</p><p class="text"><b>v0.8</b> — 대학 생활에 휴학(입대·알바·워킹홀리데이·긴 여행·시험 준비·창업·쉬기), 편입(한 단계 위 묶음으로 3학년 편입, 전문대→4년제 포함), 반수(떨어지면 복귀), 방학 여행 추가.</p><p class="text"><b>v0.7</b> — 대학 생활: 매년 "올해는 무엇을 할까" 결정(동아리·학생회·과외·알바·방학 인턴·학부연구생·대외활동·봉사·공모전·창업동아리·토익·복수전공·교환학생·어학연수·연애·학점·놀기)과 인턴 정규직 전환, 교수 추천 취업, 논문 공저, 공모전 입상, 새터·MT·축제·취업 박람회 같은 사건.</p><p class="text"><b>v0.6</b> — 대입 개편: 수능 백분위·내신 등급 모형, 수시 6장+정시 3장(상향·적정·안정 프리셋과 직접 고르기), 묶음 이름 대학 13분류(국립·사립·소재지·등록금), 7대 계열 선택과 2학년 중계열 결정, 전과. 쉬었음·흡연·음주·학원·아르바이트를 무작위가 아니라 내가 고르는 결정으로 변경.</p><p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v1.0</b> — 턴제로 전환(다음 해·다음 갈림길·자동 재생), 생각 멈춤을 12·19·29·39·49·59·69세 챕터 성적표로 교체(같은 형편 아이들 중 위치, 바뀐 확률, 인물 한마디). 출발선 대비 순위, 오늘의 아기(날짜 시드)와 "오늘의 아기만" 순위, 같은 아이로 다시(시드 링크), 자녀로 이어하기(세대 계승·상속), 도전과제 16종, 건강 경고 신호, 단짝·부모·배우자·자녀의 한마디, 연표(10년 묶음·아이콘), 집값 지수 그래프, 청약 당첨 할인.</p><p class="text"><b>v0.9</b> — 네 스탯을 체력·멘탈·스펙·인맥으로 재정의(인맥이 취업·이직 확률에, 체력이 번아웃에 반영). 상단에 지금 상태를 그리는 픽셀 장면(계절·해의 위치·집·복장·표정·안경·배우자·자녀·반려동물·차·재산)을 추가.</p><p class="text"><b>v0.8</b> — 대학 생활에 휴학(입대·알바·워킹홀리데이·긴 여행·시험 준비·창업·쉬기), 편입(한 단계 위 묶음으로 3학년 편입, 전문대→4년제 포함), 반수(떨어지면 복귀), 방학 여행 추가.</p><p class="text"><b>v0.7</b> — 대학 생활: 매년 "올해는 무엇을 할까" 결정(동아리·학생회·과외·알바·방학 인턴·학부연구생·대외활동·봉사·공모전·창업동아리·토익·복수전공·교환학생·어학연수·연애·학점·놀기)과 인턴 정규직 전환, 교수 추천 취업, 논문 공저, 공모전 입상, 새터·MT·축제·취업 박람회 같은 사건.</p><p class="text"><b>v0.6</b> — 대입 개편: 수능 백분위·내신 등급 모형, 수시 6장+정시 3장(상향·적정·안정 프리셋과 직접 고르기), 묶음 이름 대학 13분류(국립·사립·소재지·등록금), 7대 계열 선택과 2학년 중계열 결정, 전과. 쉬었음·흡연·음주·학원·아르바이트를 무작위가 아니라 내가 고르는 결정으로 변경.</p><p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
   UI.fmtMetric = (k, v) => k === 'wealth' || k === 'income' ? U.fmtMan(v) : k === 'age' ? `${v}세` : k === 'score' ? `${v}점` : `${Math.round(v)}`;
@@ -269,14 +333,15 @@ window.KR = window.KR || {};
     const g = rec.global; if (!g) { el.innerHTML = ''; return; }
     el.innerHTML = `<span>오늘 플레이한 <b>${g.n}명</b> 중 인생 점수 <b>${g.score.rank}위</b> · 재산 ${g.wealth.rank}위 · 수명 ${g.age.rank}위 · 멘탈 ${g.happy.rank}위</span><button class="small" id="btn-today-from-death">오늘의 순위 보기</button>`;
   };
-  UI.todayHTML = (data, key, days, myIds, err) => {
+  UI.todayHTML = (data, key, days, myIds, err, dailyOnly) => {
+    if (data && dailyOnly) data = { ...data, rows: data.rows.filter(r => r.daily).map((r, i) => ({ ...r, rank: i + 1 })) };
     const sel = `<select id="today-key" style="width:auto;padding:4px 8px">${S.RANK_KEYS.map(k => `<option value="${k}" ${k === key ? 'selected' : ''}>${S.RANK_LABEL[k]}</option>`).join('')}</select>`;
     const daySel = days && days.length ? `<select id="today-day" style="width:auto;padding:4px 8px">${days.map(d => `<option value="${d.day}" ${data && d.day === data.day ? 'selected' : ''}>${d.day}${d.day === (data && data.today) ? ' (오늘)' : ''} · ${d.n}명</option>`).join('')}</select>` : '';
     let body;
     if (err) body = `<p class="help">${esc(err)}</p>`;
     else if (!data.rows.length) body = `<p class="help">${data.day}에는 아직 기록이 없습니다. 첫 번째가 되어 보세요.</p>`;
-    else body = `<table class="ranking-table"><tr><th>#</th><th>삶</th><th style="text-align:right">${S.RANK_LABEL[key]}</th><th style="text-align:right">점수</th></tr>${data.rows.map(r => `<tr class="${myIds.includes(r.id) ? 'me' : ''}"><td>${r.rank}</td><td>${r.nick ? `<b>${esc(r.nick)}</b> ` : ''}${esc(r.name)} <span class="meta">${r.birthYear}년생 · ${esc(r.region)} · ${r.sex === 'M' ? '남' : '여'} · ${r.deathAge}세</span></td><td class="v">${UI.fmtMetric(key, r.value)}</td><td class="v meta">${r.score}점</td></tr>`).join('')}</table>`;
-    return `<h2>오늘의 순위</h2><p class="text">${data ? `${data.day} 플레이한 ${data.n}명.` : ''} 서버에 올라간 모든 사람의 기록으로, 내 기록은 색으로 표시됩니다.</p><div class="actions" style="margin:0 0 10px;flex-wrap:wrap">${daySel}${sel}</div>${body}`;
+    else body = `<table class="ranking-table"><tr><th>#</th><th>삶</th><th style="text-align:right">${S.RANK_LABEL[key]}</th><th style="text-align:right">점수</th></tr>${data.rows.map(r => `<tr class="${myIds.includes(r.id) ? 'me' : ''}"><td>${r.rank}</td><td>${r.nick ? `<b>${esc(r.nick)}</b> ` : ''}${esc(r.name)} <span class="meta">${r.daily ? '오늘의 아기 · ' : ''}${r.birthYear}년생 · ${esc(r.region)} · ${r.sex === 'M' ? '남' : '여'} · ${r.deathAge}세${r.startTop ? ` · 출발선 상위 ${r.startTop}%` : ''}${r.lineage > 1 ? ` · ${r.lineage}대` : ''}</span></td><td class="v">${UI.fmtMetric(key, r.value)}</td><td class="v meta">${r.score}점</td></tr>`).join('')}</table>`;
+    return `<h2>오늘의 순위</h2><p class="text">${data ? `${data.day} 플레이한 ${data.n}명.` : ''} 서버에 올라간 모든 사람의 기록으로, 내 기록은 색으로 표시됩니다.</p><div class="actions" style="margin:0 0 10px;flex-wrap:wrap">${daySel}${sel}<label class="check"><input type="checkbox" id="today-daily" ${dailyOnly ? 'checked' : ''}> 오늘의 아기만</label></div>${body}`;
   };
   UI.applyHTML = (s, plan) => {
     const E = S.scorePct(s, false), SP = S.susiPct(s), g = S.naesinGrade(s), odds = S.planOdds(s, plan), susi = s.year >= 1997;
@@ -307,7 +372,10 @@ window.KR = window.KR || {};
       cell('생애 소득', U.fmtMan(sm.lifetimeIncome)),
       cell('마지막 스탯', `체력 ${Math.round(s.stats.health)} · 멘탈 ${Math.round(s.stats.happy)} · 스펙 ${Math.round(s.stats.know)} · 인맥 ${Math.round(s.stats.rel)}`),
     ].join('');
-    $('d-rank').innerHTML = rec ? UI.rankHTML(rec) + UI.localRankLine(rec.lives || [], rec) : '';
+    const st = rec && rec.start, ov = rec && rec.rank && rec.rank.score;
+    const startHTML = st ? `<div class="start">출발선 대비 · ${st.label} ${st.n}명 중 <b>${st.rank}위</b> (상위 ${st.top}%)<small>${ov && st.top < ov.top ? '출발선을 생각하면 전체 순위보다 더 잘 살아 낸 삶이다.' : ov && st.top > ov.top ? '좋은 출발선에 비하면 아쉬움이 남는 결과다.' : '출발선 그대로의 삶이다.'}</small></div>` : '';
+    $('d-rank').innerHTML = rec ? startHTML + UI.rankHTML(rec) + UI.localRankLine(rec.lives || [], rec) : '';
+    const bd = $('d-badges'); if (bd) { const got = rec && rec.badges ? rec.badges : []; bd.innerHTML = got.length ? `<h3 style="margin:8px 0 4px">도전과제</h3>` + got.map(id => { const b = S.BADGES.find(x => x[0] === id); return b ? `<span class="badge-chip" title="${esc(b[2])}">🏅 ${esc(b[1])}${rec.fresh && rec.fresh.includes(id) ? '<small>NEW</small>' : ''}</span>` : ''; }).join('') : ''; }
     const notes = Object.entries(s.notes || {}).filter(x => x[1]);
     $('d-items').innerHTML = `<h3 style="margin:8px 0 4px">남긴 것</h3>` + UI.itemsHTML(sm.items, true);
     $('d-notes').innerHTML = notes.length ? `<h3>남긴 생각</h3>` + notes.map(x => `<p>${x[0]}세 — ${esc(x[1])}</p>`).join('') : '';
@@ -332,6 +400,7 @@ window.KR = window.KR || {};
     ctx.globalAlpha = 1; y = startY + 4 * (size + 4) + 70;
     ctx.fillStyle = '#ecebe6'; ctx.font = '400 36px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.fillText(`체력 ${Math.round(s.stats.health)}   멘탈 ${Math.round(s.stats.happy)}   스펙 ${Math.round(s.stats.know)}   인맥 ${Math.round(s.stats.rel)}`, 80, y); y += 60;
+    if (rec && rec.start) { ctx.fillStyle = '#ecebe6'; ctx.font = '600 34px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`출발선 대비 · ${rec.start.label} ${rec.start.n}명 중 ${rec.start.rank}위 (상위 ${rec.start.top}%)`, 80, y); y += 54; }
     if (rec && rec.rank) { ctx.fillStyle = '#f2b84b'; ctx.font = '600 38px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`인생 점수 ${rec.rank.score.value}점 · 같은 해에 태어난 ${rec.rank.n}명 중 ${rec.rank.score.rank}위`, 80, y); y += 54; ctx.fillStyle = '#9a9ca8'; ctx.font = '400 32px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`재산 ${rec.rank.wealth.rank}위 · 수명 ${rec.rank.age.rank}위 · 멘탈 ${rec.rank.happy.rank}위 · 인맥 ${rec.rank.rel.rank}위`, 80, y); y += 60; }
     ctx.fillStyle = '#6f717c'; ctx.font = '400 28px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.fillText(`한국 통계로 만든 인생 시뮬레이션 · ${location.host}${location.pathname.replace(/index\.html$/, '')}`, 80, H - 70);

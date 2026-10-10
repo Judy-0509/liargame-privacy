@@ -81,7 +81,7 @@ window.KR = window.KR || {};
 
   S.newLife = function (o, cohortChild) {
     const by = o.birthYear;
-    const s = { v: 1, rng: (o.seed >>> 0) || 1, birthYear: by, year: by, age: 0, alive: true, focus: 'balance', taken: {}, last: {}, flags: {}, queue: [], log: [], map: [], notes: {}, pauses: [5, 15, 30, 50, 70], auto: !!cohortChild };
+    const s = { v: 1, seed0: (o.seed >>> 0) || 1, rng: (o.seed >>> 0) || 1, birthYear: by, year: by, age: 0, alive: true, focus: 'balance', taken: {}, last: {}, flags: {}, queue: [], log: [], map: [], notes: {}, pauses: [5, 15, 30, 50, 70], auto: !!cohortChild };
     s.sex = U.chance(s, D.maleShare) ? 'M' : 'F';
     const w = U.clamp((by - 1970) / 54, 0, 1);
     s.region = D.regions.indexOf(U.weighted(s, D.regions, r => r.share1970 + (r.share2024 - r.share1970) * w));
@@ -107,7 +107,7 @@ window.KR = window.KR || {};
     s.love = { partner: null, since: 0, married: false, spouse: null, marriedAt: null, divorced: 0, single: false, trying: false, tryYears: 0, asked: 0 };
     s.kids = [];
     s.hs = { smoker: false, smokeYears: 0, drinker: false, exercise: false, cond: [], cancer: null, cancers: 0, dementia: false, careHome: false, poverty: false };
-    s.items = []; s.car = null; s.pet = null;
+    s.items = []; s.car = null; s.pet = null; s.people = {}; s.snap = {}; s.odds = []; s.hHist = [];
     s.hIdx = 1;
     s.cohortSeed = (o.seed * 7919) >>> 0;
     const r = region(s);
@@ -208,11 +208,27 @@ window.KR = window.KR || {};
     if (s.age < 18 && s.parents.together) { s.parents.together = false; s.parents.hard = 3; }
   }
 
+  function yearPeople(s) {
+    const a = s.age, p = s.people;
+    if (a === 9 && !p.friend) { p.friend = { n: S.makeName(s, U.chance(s, 0.5) ? 'M' : 'F', s.birthYear).slice(1), since: a }; S.log(s, `단짝 친구 ${U.iga(p.friend.n)} 생겼다. 하굣길을 같이 걸었다.`, 'family'); }
+    if (s.love.partner && !s.love.partner.n) { s.love.partner.n = S.makeName(s, s.sex === 'M' ? 'F' : 'M', s.year - a).slice(1); if (!p.first) { p.first = { n: s.love.partner.n, at: a }; } }
+    if (p.friend && a >= 30 && a % 10 === 0 && U.chance(s, 0.5)) S.log(s, U.pick(s, [`${p.friend.n}과(와) 오랜만에 술 한잔했다.`, `${p.friend.n}의 소식을 들었다. 서로 많이 달라졌다.`, `${p.friend.n}이(가) 먼저 연락해 왔다.`]), 'family');
+  }
+  S.voice = (s, who) => {
+    const p = s.people, st = stageOf(s);
+    if (who === 'friend' && p.friend) { const n = p.friend.n; if (s.age < 20) return `${n}: "야, 너 요즘 학원 몇 개 다녀?"`; if (st === 'seek') return `${n}: "공무원이 답이야. 나도 준비 중."`; if (s.money.debt > s.money.income) return `${n}: "빚부터 갚아. 코인은 그만."`; if (s.love.married) return `${n}: "결혼하더니 연락이 뜸하네."`; return `${n}: "이번 주말에 보자."`; }
+    if (who === 'parent') { const m = s.parents.mother, f = s.parents.father; const alive = m.alive ? '어머니' : f.alive ? '아버지' : null; if (!alive) return null; if (s.age < 19) return `${alive}: "공부가 다는 아니지만, 지금은 공부할 때다."`; if (st === 'seek') return `${alive}: "안정적인 데가 최고야. 급하게 가지 마."`; if (!s.love.married && s.age >= 30) return `${alive}: "만나는 사람은 있니?"`; if (s.age >= 50) return `${alive}: "건강 챙겨라. 돈보다 몸이다."`; return `${alive}: "밥은 먹고 다니니."`; }
+    if (who === 'spouse' && s.love.married && s.love.spouse) { const n = s.love.spouse.name; if (s.stats.rel < 40) return `${n}: "우리 요즘 대화가 없어."`; if (s.money.debt > s.money.income * 2) return `${n}: "이자 때문에 밤에 잠이 안 와."`; if (s.kids.length) return `${n}: "애들 학원비가 또 올랐어."`; return `${n}: "주말에 어디 갈까?"`; }
+    if (who === 'kid' && s.kids.length) { const k = s.kids.find(x => x.alive); if (!k) return null; const ka = s.year - k.by; if (ka < 6) return `${k.n}: "아빠 엄마 놀아줘!"`; if (ka < 19) return `${k.n}: "나도 학원 그만 다니면 안 돼?"`; if (ka < 30) return `${k.n}: "취업하면 독립할게."`; return `${k.n}: "자주 못 와서 미안해."`; }
+    if (who === 'first' && p.first && !s.love.married) return `${p.first.n}: (SNS에서 결혼 소식이 올라왔다)`;
+    return null;
+  };
   function yearFamily(s) {
+    yearPeople(s);
     for (const who of ['mother', 'father']) {
       const p = s.parents[who]; if (!p.alive) continue;
       p.age += 1;
-      if (U.chance(s, L.q(who === 'mother' ? 'F' : 'M', s.year, p.age, decileF(s.parents.decile)))) parentDie(s, who);
+      if (p.dieAt != null ? s.year >= p.dieAt : U.chance(s, L.q(who === 'mother' ? 'F' : 'M', s.year, p.age, decileF(s.parents.decile)))) parentDie(s, who);
     }
     if (s.parents.hard > 0) s.parents.hard -= 1;
     if (s.age < 20 && s.parents.together && s.parents.mother.alive && s.parents.father.alive) {
@@ -240,6 +256,10 @@ window.KR = window.KR || {};
     }
   }
 
+  S.SNAP_AGES = [12, 19, 29, 39, 49, 59, 69];
+  S.oddsLog = (s, label, before, after) => { const b = Math.round(before * 100), a = Math.round(after * 100); s.odds.push({ a: s.age, label, b, c: a }); S.log(s, `${label}: ${b}% → ${a}%`, 'odds'); };
+  S.groupOf = d => d <= 3 ? 'low' : d <= 7 ? 'mid' : 'high';
+  S.GROUP_LABEL = { low: '소득 1~3분위 가정', mid: '소득 4~7분위 가정', high: '소득 8~10분위 가정' };
   S.decileOf = s => {
     if (s.age < 25 && s.work.status !== 'employed') return s.parents.decile;
     const inc = s.money.income || 0, med = S.medianIncome(s.year);
@@ -411,6 +431,7 @@ window.KR = window.KR || {};
         const failP = 0.19 * (s.shock ? shockF(s, '자영업') : 1) * (1 - (s.stats.know - 50) / 200) * (w.years <= 5 ? 1 : 0.5);
         if (U.chance(s, failP)) { S.log(s, '가게를 접었다. 남은 건 빚이었다.', 'work'); s.money.debt += Math.round(U.int(s, 2000, 8000) * S.incomeIndex(s.year)); w.status = 'unemployed'; w.type = null; s.yearShock.happy -= 18; return; }
         if (w.years === 5) S.log(s, '가게가 5년을 버텼다. 셋 중 하나만 살아남는 길이었다.', 'work');
+        if (w.years >= 10) s.flags.selfTen = true;
       } else {
         const fireP = (1 - j.stable) * 0.08 * shockF(s, w.type) * (s.focus === 'work' ? 0.7 : 1);
         if (U.chance(s, fireP)) { S.log(s, s.shock ? '구조조정으로 회사를 나왔다.' : '회사를 나오게 됐다.', 'work'); S.gain(s, Math.round(pay / 12 * w.years)); w.status = 'unemployed'; w.type = null; s.yearShock.happy -= 15; return; }
@@ -420,9 +441,10 @@ window.KR = window.KR || {};
         if (w.type === '공공' && a >= 60) { retire(s, '정년퇴직했다.'); return; }
         if (a >= 60 && w.type !== '농업' && U.chance(s, a >= 70 ? 0.6 : 0.2)) { retire(s, '일을 그만두고 쉬기로 했다.'); return; }
         if (U.chance(s, 0.06) && a < 50) { S.log(s, '승진했다.', 'work'); pay *= 1.08; s.yearShock.happy += 5; }
-        if (U.chance(s, 0.07) && s.focus !== 'rest') { S.log(s, '야근이 이어진 해였다.', 'work'); S.bump(s, 'health', -3); s.yearShock.happy -= 4; }
+        if (U.chance(s, 0.07) && s.focus !== 'rest') { S.log(s, '야근이 이어진 해였다.', 'work'); S.bump(s, 'health', -3); s.yearShock.happy -= 4; s.hs.overwork = (s.hs.overwork || 0) + 1; }
         if (s.stats.happy < 32 && U.chance(s, s.stats.health < 50 ? 0.5 : 0.3)) pushDecision(s, 'burnout');
         if (w.years >= 3 && a < 45 && U.chance(s, 0.05)) pushDecision(s, 'job_change');
+        if (w.years >= 25) s.flags.longJob = true;
       }
       if (a >= 75 && w.status === 'self') { retire(s, '가게를 정리하고 쉬기로 했다.'); return; }
       w.pay = Math.round(pay);
@@ -478,7 +500,7 @@ window.KR = window.KR || {};
     const ageF = a < 22 ? 0.7 : a <= 34 ? 1.1 : a <= 44 ? 0.5 : a <= 59 ? 0.22 : 0.08;
     const statusF = (s.work.status === 'employed' || s.work.status === 'self' || s.edu.stage === 'univ') ? 1 : 0.6;
     const p = 0.32 * (s.stats.rel / 60) * ageF * statusF * (lv.single ? 0.2 : 1) * (lv.widowed ? 0.3 : 1) * (s.focus === 'rel' ? 1.5 : 1);
-    if (U.chance(s, p)) { s.flags.partnerEver = true; lv.partner = { since: a }; lv.since = 0; S.log(s, a < 25 ? '누군가를 좋아하게 됐다.' : '새로운 사람을 만났다.', 'love'); s.yearShock.happy += 7; s.yearShock.rel += 4; }
+    if (U.chance(s, p)) { s.flags.partnerEver = true; lv.partner = { since: a, n: S.makeName(s, s.sex === 'M' ? 'F' : 'M', s.year - a).slice(1) }; lv.since = 0; S.log(s, a < 25 ? '누군가를 좋아하게 됐다.' : '새로운 사람을 만났다.', 'love'); s.yearShock.happy += 7; s.yearShock.rel += 4; }
   }
 
   function divorce(s, note) {
@@ -495,7 +517,8 @@ window.KR = window.KR || {};
     const ssex = s.sex === 'M' ? 'F' : 'M';
     const sage = Math.round(U.clamp(s.age + (ssex === 'F' ? -D.fatherGap : D.fatherGap) + U.normal(s, 0, 2), 19, 80));
     const works = U.chance(s, yr('dualIncome', s.year) + 0.1);
-    lv.spouse = { sex: ssex, age: sage, alive: true, name: S.makeName(s, ssex, s.year - sage), works, pay: Math.round(3200 * S.payIndex(s.year) * (ssex === 'F' ? 0.85 : 1) * (0.7 + U.rnd(s) * 0.8)) };
+    const pn = s.love.partner && s.love.partner.n ? U.weighted(s, D.surnames, x => x[1])[0] + s.love.partner.n : null;
+    lv.spouse = { sex: ssex, age: sage, alive: true, name: pn || S.makeName(s, ssex, s.year - sage), works, pay: Math.round(3200 * S.payIndex(s.year) * (ssex === 'F' ? 0.85 : 1) * (0.7 + U.rnd(s) * 0.8)) };
     const wedding = Math.round(D.marriage.wedding * S.incomeIndex(s.year) * (s.parents.decile >= 7 ? 1.3 : 1));
     S.cost(s, Math.round(wedding * 0.5));
     S.log(s, `${lv.spouse.name}과(와) 결혼했다. ${s.age}세.`, 'love');
@@ -516,6 +539,7 @@ window.KR = window.KR || {};
       if (U.chance(s, p)) {
         const k = { sex: U.chance(s, 0.513) ? 'M' : 'F', by: s.year, alive: true, home: true };
         k.n = S.makeName(s, k.sex, s.year).slice(1);
+        for (let t = 0; t < 5 && s.kids.some(x => x.n === k.n); t++) k.n = S.makeName(s, k.sex, s.year).slice(1);
         s.kids.push(k); lv.trying = false; lv.tryYears = 0;
         S.log(s, `${k.sex === 'M' ? '아들' : '딸'} ${U.iga(k.n)} 태어났다.`, 'kid');
         s.yearShock.happy += 14; s.yearShock.rel += 6;
@@ -542,6 +566,7 @@ window.KR = window.KR || {};
     const m = s.money, r = region(s), idx = S.incomeIndex(s.year);
     if (s.year <= 2026) s.hIdx = yr('housing', s.year); else s.hIdx = s.hIdx * (1 + 0.004 + U.normal(s, 0, 0.06));
     if (r.capital && s.year > 2026) s.hIdx *= 1 + (s.hIdx > 1 ? 0.003 : -0.002);
+    s.hHist.push([s.year, Math.round(s.hIdx * 100) / 100]); if (s.hHist.length > 60) s.hHist.shift();
     let cost = 0;
     if (s.housing === 'parents') {
       if ((s.work.status === 'employed' || s.work.status === 'self') && s.age >= 26 && !s.love.married && U.chance(s, 0.18)) { s.housing = 'monthly'; S.log(s, '독립했다. 월세방을 얻었다.', 'home'); }
@@ -558,6 +583,7 @@ window.KR = window.KR || {};
     if (s.housing === 'own') {
       const prev = m.homeValue; m.homeValue = Math.round(S.homePrice(s, 'own') * (m.homeSize || 1));
       if (m.loan > 0) { const interest = m.loan * 0.038, principal = Math.min(m.loan, m.loan / Math.max(5, 30 - (s.age - (m.loanAt || s.age)))); cost += interest + principal; m.loan -= principal; if (m.loan < 50) { m.loan = 0; S.log(s, '대출을 모두 갚았다. 집이 온전히 내 것이 됐다.', 'home'); s.yearShock.happy += 8; } }
+      if (r.capital && m.homeValue >= 100000) s.flags.seoulApt = true;
       if (prev > 0) { const ch = (m.homeValue - prev) / prev; if (Math.abs(ch) > 0.09) S.log(s, ch > 0 ? `집값이 ${Math.round(ch * 100)}% 올랐다.` : `집값이 ${Math.round(-ch * 100)}% 내렸다.`, 'home'); if (ch > 0.09) s.yearShock.happy += 3; if (ch < -0.09) s.yearShock.happy -= 4; }
     }
     if (s.hs.careHome) cost += 1800 * idx;
@@ -599,7 +625,7 @@ window.KR = window.KR || {};
       if (s.pet.age >= s.pet.life) { S.log(s, `${U.iga(s.pet.n)} 무지개다리를 건넜다.`, 'item'); s.yearShock.happy -= 8; s.pet = null; }
     } else if (a >= 24 && a <= 68 && y >= 1990 && s.housing !== 'parents' && !s.hs.careHome && U.chance(s, 0.015)) {
       const kind = U.chance(s, 0.6) ? '강아지' : '고양이';
-      s.pet = { kind, n: U.pick(s, petNames), age: 0, life: U.int(s, 11, 16) };
+      s.pet = { kind, n: U.pick(s, petNames), age: 0, life: U.int(s, 11, 16) }; s.flags.petEver = true;
       S.log(s, `${kind} ${U.eul(s.pet.n)} 들였다.`, 'item'); s.yearShock.happy += 5; s.yearShock.rel += 2;
     }
   }
@@ -631,7 +657,9 @@ window.KR = window.KR || {};
         s.yearShock.happy -= 18; pushDecision(s, 'treatment');
       }
     }
-    if (U.chance(s, 0.006 * (a < 30 ? 1.4 : 1))) { S.log(s, '교통사고로 다쳤다. 몇 달을 병원에서 보냈다.', 'health'); S.bump(s, 'health', -8); S.cost(s, 200 * S.incomeIndex(s.year)); s.yearShock.happy -= 6; }
+    if (a >= 30 && st.health < 46 && !h.careHome && (h.warnAt == null || a - h.warnAt >= 4)) { h.warnAt = a; S.log(s, '체력 경고. 계단에서 숨이 차고 검진 결과지에 빨간 글씨가 늘었다.', 'warn'); pushDecision(s, 'health_alarm'); }
+    if (h.overwork >= 3 && (h.warnAt == null || a - h.warnAt >= 4)) { h.warnAt = a; h.overwork = 0; S.log(s, '과로 경고. 야근이 이어지며 몸이 신호를 보낸다.', 'warn'); pushDecision(s, 'health_alarm'); }
+    if (U.chance(s, 0.006 * (a < 30 ? 1.4 : 1))) { s.flags.accident = true; S.log(s, '교통사고로 다쳤다. 몇 달을 병원에서 보냈다.', 'health'); S.bump(s, 'health', -8); S.cost(s, 200 * S.incomeIndex(s.year)); s.yearShock.happy -= 6; }
     if (!h.dementia && a >= 65 && U.chance(s, 0.002 * Math.pow(1.14, a - 65) * (st.know > 70 ? 0.7 : 1))) { h.dementia = true; S.log(s, '치매 진단을 받았다. 이름들이 하나씩 흐려졌다.', 'health'); s.yearShock.happy -= 10; }
     if (h.dementia) { S.bump(s, 'know', -8); s.yearShock.rel -= 3; if (!h.careHome && (s.taken.care_home || 0) < 1 && (h.dementiaYears = (h.dementiaYears || 0) + 1) >= 2) pushDecision(s, 'care_home'); }
     else if (!h.careHome && a >= 78 && st.health < 30 && (s.taken.care_home || 0) < 1) pushDecision(s, 'care_home');
@@ -742,6 +770,8 @@ window.KR = window.KR || {};
     if (h.dementia) f *= 1.5;
     if (h.poverty) f *= 1.2;
     if (h.cancer && !h.cancer.treat) f *= 1.3;
+    if (h.ignoredAt != null && a - h.ignoredAt <= 5) f *= 1.3;
+    if (h.caredAt != null && a - h.caredAt <= 3) f *= 0.85;
     if (s.mil.status === 'serving') f *= 1.1;
     f = U.clamp(f, 0.3, 6);
     let q = L.q(s.sex, s.year, a, f * S.hazardScale[s.sex]);
@@ -787,6 +817,7 @@ window.KR = window.KR || {};
       else if (pool.length && U.chance(s, s.age < 30 ? 0.4 : 0.25)) say();
     }
     s.map.push({ a: s.age, y: s.year, st: stageOf(s), h: Math.round(s.stats.happy), hp: Math.round(s.stats.health), r: Math.round(s.stats.rel) });
+    if (S.SNAP_AGES.includes(s.age)) s.snap[s.age] = { know: Math.round(s.stats.know), rel: Math.round(s.stats.rel), health: Math.round(s.stats.health), happy: Math.round(s.stats.happy), net: S.netWorth(s) };
     if (s.cohort) for (const c of s.cohort) S.stepAuto(c);
     return s.log.slice(start);
   };
@@ -825,7 +856,7 @@ window.KR = window.KR || {};
     for (const i of s.items) out.push({ k: i.k, n: i.n, v: i.v, y: i.y });
     return out;
   };
-  S.BENCH_VERSION = 3;
+  S.BENCH_VERSION = 4;
   S.metrics = s => {
     const n = s.map.length || 1;
     const avg = k => s.map.length ? s.map.reduce((a, m) => a + (m[k] == null ? 50 : m[k]), 0) / n : s.stats[k === 'h' ? 'happy' : k === 'r' ? 'rel' : 'health'];
@@ -835,7 +866,45 @@ window.KR = window.KR || {};
     const s = S.newLife({ birthYear, seed }, true);
     S.completeYear(s);
     let g = 0; while (s.alive && g++ < 130) S.stepAuto(s);
-    return S.metrics(s);
+    const m = S.metrics(s); m.decile = s.parents.decile; m.snap = s.snap; return m;
+  };
+  S.BADGES = [
+    ['centenarian', '백세', '100세까지 살았다', s => (s.death ? s.death.age : s.age) >= 100],
+    ['doctor', '의사 선생님', '의사·치과의사·한의사·약사가 됐다', s => ['의사', '치과의사', '한의사', '약사'].includes(s.work.mainTitle)],
+    ['seoulapt', '서울 아파트', '서울·경기·인천에 10억 넘는 집을 가졌다', s => s.flags.seoulApt || (s.housing === 'own' && D.regions[s.region].capital && s.money.homeValue >= 100000)],
+    ['spoon', '수저 역전', '소득 1~3분위 집에서 태어나 순자산 10억을 넘겼다', s => s.parents.decile <= 3 && S.netWorth(s) >= 100000],
+    ['bigfamily', '다둥이', '자녀를 셋 이상 길렀다', s => s.kids.filter(k => k.alive).length >= 3],
+    ['nosmoke', '평생 금연', '담배를 한 번도 피우지 않고 70세를 넘겼다', s => !s.hs.smoker && !s.hs.quit && (s.death ? s.death.age : s.age) >= 70],
+    ['abroad', '세계인', '해외에서 일했다', s => s.flags.intl || s.work.mainType === '해외'],
+    ['top', '최상위권', '최상위권 대학 또는 의약계열에 입학했다', s => s.edu.univ && s.edu.univ.tier >= 3],
+    ['founder', '사장님', '자영업·창업으로 10년을 버텼다', s => s.flags.selfTen],
+    ['rich', '자산가', '순자산 30억을 넘겼다', s => S.netWorth(s) >= 300000],
+    ['healthy', '무탈', '암과 큰 사고 없이 80세를 넘겼다', s => !s.hs.cancers && (s.death ? s.death.age : s.age) >= 80 && !s.flags.accident],
+    ['pet', '반려 가족', '반려동물과 살았다', s => s.flags.petEver],
+    ['lineage', '세대 계승', '자녀의 삶을 이어서 살았다', s => s.lineage && s.lineage.gen >= 2],
+    ['daily', '오늘의 아기', '오늘의 아기로 한 생을 살았다', s => !!s.daily],
+    ['fulltime', '평생 직장', '한 직장에서 25년을 일했다', s => s.flags.longJob],
+    ['teacher', '선생님', '교사가 됐다', s => (s.work.mainTitle || '').includes('교사')],
+  ];
+  S.badges = s => S.BADGES.filter(b => { try { return b[3](s); } catch (e) { return false; } }).map(b => b[0]);
+  S.newLifeFrom = (parent, kid, seed) => {
+    const s = S.newLife({ birthYear: kid.by, seed }, false);
+    s.sex = kid.sex; s.name = parent.name[0] + kid.n; s.region = parent.region;
+    const d = U.clamp(Math.round(1 + S.netWorth(parent) / 60000 * 2 + (parent.work.mainType ? D.jobs[parent.work.mainType].start / 2500 : 0)), 1, 10);
+    s.parents.decile = d; s.parents.assets = 0; s.parents.type = 'both'; s.parents.together = true;
+    const pAge = kid.by - parent.birthYear; const spAge = parent.love.spouse ? parent.love.spouse.age - (parent.year - kid.by) : pAge + 2;
+    if (parent.sex === 'F') { s.parents.mother = { age: pAge, alive: true, edu: parent.edu.degree, dieAt: parent.death ? parent.death.year : null }; s.parents.father = { age: Math.max(18, spAge), alive: !!(parent.love.spouse && parent.love.spouse.alive) || !parent.love.spouse, edu: '고졸' }; }
+    else { s.parents.father = { age: pAge, alive: true, edu: parent.edu.degree, dieAt: parent.death ? parent.death.year : null }; s.parents.mother = { age: Math.max(18, spAge), alive: !!(parent.love.spouse && parent.love.spouse.alive) || !parent.love.spouse, edu: '고졸' }; }
+    const sibs = parent.kids.filter(k => k.alive && k !== kid).map(k => ({ sex: k.sex, by: k.by, alive: true, born: k.by <= kid.by }));
+    s.siblings = sibs; s.birthOrder = sibs.filter(x => x.by < kid.by).length + 1;
+    const inherit = Math.round(Math.max(0, S.netWorth(parent)) * 0.7 / Math.max(1, parent.kids.filter(k => k.alive).length));
+    if (parent.death) s.parents.assets = Math.round(inherit * (sibs.length + 1) / (0.7 * Math.max(0.05, S.incomeIndex(parent.death.year))));
+    s.lineage = { from: parent.name, gen: ((parent.lineage && parent.lineage.gen) || 1) + 1, inherit };
+    s.log = s.log.filter(l => l.k !== 'birth');
+    const r = D.regions[s.region];
+    S.log(s, `${kid.by}년, ${r.name}에서 ${s.sex === 'M' ? '남자아이' : '여자아이'}가 태어났다. 이름은 ${s.name}. ${parent.name}의 ${kid.sex === 'M' ? '아들' : '딸'}이다.`, 'birth');
+    S.log(s, `${s.lineage.gen}대째 삶. 부모의 형편은 소득 ${d}분위${inherit > 1000 ? `, 언젠가 ${U.fmtMan(inherit)}을 물려받는다` : ''}.`, 'birth');
+    return s;
   };
   S.RANK_KEYS = ['score', 'wealth', 'age', 'happy', 'income', 'rel'];
   S.RANK_LABEL = { score: '인생 점수', wealth: '최종 재산', age: '수명', happy: '멘탈', income: '생애 소득', rel: '인맥' };
@@ -843,10 +912,32 @@ window.KR = window.KR || {};
   S.rankOf = (sorted, v) => { let above = 0; for (const x of sorted) if (x > v) above++; return above + 1; };
   S.scoreOf = (m, bench) => Math.round(100 * (S.percentile(bench.age, m.age) + S.percentile(bench.happy, m.happy) + S.percentile(bench.rel, m.rel) + S.percentile(bench.wealth, m.wealth)) / 4);
   S.finishBench = raw => {
-    const b = { n: raw.length, v: S.BENCH_VERSION };
+    const b = { n: raw.length, v: S.BENCH_VERSION, g: {}, snap: {} };
     for (const k of ['age', 'happy', 'rel', 'wealth', 'income']) b[k] = raw.map(m => m[k]).sort((x, y) => x - y);
     b.score = raw.map(m => S.scoreOf(m, b)).sort((x, y) => x - y);
+    for (const g of ['low', 'mid', 'high']) {
+      const rows = raw.filter(m => S.groupOf(m.decile || 5) === g);
+      const gb = { n: rows.length };
+      for (const k of ['age', 'happy', 'rel', 'wealth', 'income']) gb[k] = rows.map(m => m[k]).sort((x, y) => x - y);
+      gb.score = rows.map(m => S.scoreOf(m, gb)).sort((x, y) => x - y);
+      b.g[g] = gb;
+      b.snap[g] = {};
+      for (const a of S.SNAP_AGES) { const sn = rows.map(m => m.snap && m.snap[a]).filter(Boolean); if (sn.length < 5) continue; b.snap[g][a] = {}; for (const k of ['know', 'rel', 'health', 'happy', 'net']) b.snap[g][a][k] = sn.map(x => x[k]).sort((x, y) => x - y); }
+    }
     return b;
+  };
+  S.startLine = (s, bench) => {
+    const g = S.groupOf(s.parents.decile), gb = bench && bench.g && bench.g[g]; if (!gb || !gb.n) return null;
+    const m = S.metrics(s); const score = S.scoreOf(m, gb);
+    return { group: g, label: S.GROUP_LABEL[g], n: gb.n, score, rank: S.rankOf(gb.score, score), top: Math.max(1, Math.round((1 - S.percentile(gb.score, score)) * 100)) };
+  };
+  S.chapterStanding = (s, bench, age) => {
+    const g = S.groupOf(s.parents.decile), sn = s.snap[age]; const ref = bench && bench.snap && bench.snap[g] && bench.snap[g][age];
+    if (!sn || !ref) return null;
+    const out = { group: g, label: S.GROUP_LABEL[g], n: ref.know.length };
+    for (const k of ['know', 'rel', 'health', 'happy', 'net']) out[k] = Math.round(S.percentile(ref[k], sn[k]) * 100);
+    out.score = Math.round((out.know + out.rel + out.health + out.happy + out.net) / 5);
+    return out;
   };
   S.rankAll = (m, bench) => {
     const out = {}; const mm = { ...m, score: S.scoreOf(m, bench) };
@@ -863,7 +954,7 @@ window.KR = window.KR || {};
       major: s.edu.major || null, sub: s.edu.sub || null, degree: ['elem', 'mid', 'high', 'repeat', 'admitted'].includes(s.edu.stage) ? '재학 중' : s.edu.degree, univ: s.edu.univ ? s.edu.univ.kind : null, job, married: s.love.marriedAt != null, marriedAt: s.love.marriedAt, divorced: s.love.divorced, kids,
       assets: S.netWorth(s), items: S.itemList(s), home, lifetimeIncome: s.money.lifetimeIncome,
       stats: { ...s.stats }, notes: s.notes, abroad: !!s.abroad, military: s.mil.kind || null, cancers: s.hs.cancers, smoker: s.hs.smoker,
-      map: s.map.map(x => [x.st, x.h]), decile: s.parents.decile,
+      map: s.map.map(x => [x.st, x.h]), decile: s.parents.decile, lineage: s.lineage || null, daily: s.daily || null, seed: s.seed0, snap: s.snap, badges: S.badges(s),
     };
   };
 })();

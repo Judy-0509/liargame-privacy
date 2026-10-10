@@ -1,4 +1,4 @@
 window.KR_CONFIG = {
   apiBase: '',
-  version: '0.4',
+  version: '1.0',
 };

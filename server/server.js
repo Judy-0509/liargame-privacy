@@ -40,7 +40,7 @@ function sanitize(b) {
     birthYear: num(b.birthYear, 1900, 2200), deathAge: num(b.deathAge, 0, 125), deathYear: num(b.deathYear, 1900, 2400), cause: str(b.cause, 20),
     degree: str(b.degree, 10), job: str(b.job, 16), married: !!b.married, kids: num(b.kids, 0, 20) || 0,
     score: num(b.score, 0, 100), wealth: num(m.wealth, -1e9, 1e10), age: num(m.age, 0, 125), happy: num(m.happy, 0, 100), income: num(m.income, 0, 1e11), rel: num(m.rel, 0, 100),
-    cohortN: num(b.cohortN, 0, 100000) || 0, cohortTop: num(b.cohortTop, 0, 100), v: str(b.version, 12),
+    cohortN: num(b.cohortN, 0, 100000) || 0, cohortTop: num(b.cohortTop, 0, 100), v: str(b.version, 12), daily: str(b.daily, 10), startTop: num(b.startTop, 0, 100), lineage: num(b.lineage, 1, 50) || 1,
   };
   for (const k of ['birthYear', 'deathAge', 'score', 'wealth', 'age', 'happy', 'income', 'rel']) if (rec[k] == null) return null;
   return rec;
@@ -48,7 +48,7 @@ function sanitize(b) {
 function ranks(rows, rec) { const out = { n: rows.length }; for (const k of KEYS) out[k] = { rank: rows.filter(r => r[k] > rec[k]).length + 1, n: rows.length }; return out; }
 function leaderboard(day, key, limit, offset) {
   const rows = load(day).slice().sort((a, b) => b[key] - a[key] || a.t - b.t);
-  return { day, key, n: rows.length, rows: rows.slice(offset, offset + limit).map((r, i) => ({ rank: offset + i + 1, id: r.id, nick: r.nick, name: r.name, sex: r.sex, region: r.region, birthYear: r.birthYear, deathAge: r.deathAge, cause: r.cause, job: r.job, value: r[key], score: r.score, wealth: r.wealth, age: r.age, happy: r.happy, income: r.income, rel: r.rel, cohortTop: r.cohortTop })) };
+  return { day, key, n: rows.length, rows: rows.slice(offset, offset + limit).map((r, i) => ({ rank: offset + i + 1, id: r.id, nick: r.nick, name: r.name, sex: r.sex, region: r.region, birthYear: r.birthYear, deathAge: r.deathAge, cause: r.cause, job: r.job, value: r[key], score: r.score, wealth: r.wealth, age: r.age, happy: r.happy, income: r.income, rel: r.rel, cohortTop: r.cohortTop, daily: r.daily, startTop: r.startTop, lineage: r.lineage })) };
 }
 function limited(ip) { const now = Date.now(); let e = rate.get(ip); if (!e || now - e.start > RATE.windowMs) { e = { start: now, n: 0 }; rate.set(ip, e); } e.n++; return e.n > RATE.max; }
 function send(res, code, body) { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': ORIGIN, 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); }
