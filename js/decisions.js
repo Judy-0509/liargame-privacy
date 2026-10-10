@@ -46,7 +46,7 @@ window.KR = window.KR || {};
       ],
     },
     {
-      id: 'univ_apply', when: s => (s.age === 17 && s.edu.stage === 'high') || (s.edu.stage === 'repeat' && s.age === 17 + s.edu.repeat),
+      id: 'univ_apply', when: s => (s.age === 17 && s.edu.stage === 'high') || (s.edu.stage === 'repeat' && s.year === s.edu.examYear),
       title: s => s.edu.stage === 'repeat' ? `${s.edu.repeat === 1 ? '재수' : '삼수'} 끝. 다시 원서를 쓴다` : '원서를 쓴다',
       text: s => { const E = S.scorePct(s, false), g = S.naesinGrade(s); return `예상 수능 백분위 ${E} (상위 ${Math.max(0.1, 100 - E).toFixed(1)}%)${s.year >= 1997 ? `, 내신 ${g}등급. 수시 6장과 정시 3장. 수시에 붙으면 정시는 갈 수 없다.` : '. 전기·후기 세 곳에 지원할 수 있다.'} ${s.edu.hs}.`; },
       options: s => {
@@ -55,7 +55,7 @@ window.KR = window.KR || {};
         const w = [0.25, 0.5, 0.25];
         const out = ps.map((p, i) => ({ label: `${p.name} 지원 (${major} 계열)`, hint: `${S.planText(p)} · 한 곳 이상 합격 ${pct(S.planOdds(s, p).any)}`, auto: () => era * w[i] * (e.hs === '특성화고' ? 0.4 : 1), focus: 'study', apply: s => { s.edu.plan = p; } }));
         out.push({ label: '직접 고르기', hint: '계열과 대학을 하나씩 정한다.', custom: 'apply', auto: () => 0, apply: () => { } });
-        out.push({ label: '수능 없이 취업', hint: e.hs === '특성화고' ? '배운 기술로 바로 일한다.' : '대학 없이 일을 시작한다.', auto: s => (1 - era) * 0.38 * (e.hs === '특성화고' ? 2.5 : 1) * (s.parents.decile <= 2 ? 1.4 : 1), focus: 'money', apply: s => { s.edu.plan = '취업'; } });
+        out.push({ label: '수능 없이 취업', hint: e.hs === '특성화고' ? '배운 기술로 바로 일한다.' : '대학 없이 일을 시작한다.', auto: s => (1 - era) * 0.38 * (e.hs === '특성화고' ? 2.5 : 1) * (s.parents.decile <= 2 ? 1.4 : 1) * (e.stage === 'repeat' ? 0.3 : 1), focus: 'money', apply: s => { s.edu.plan = '취업'; } });
         return out;
       },
       applyCustom: (s, plan) => { s.edu.plan = { name: '커스텀', major: plan.major, su: { ...plan.su }, jung: { ...plan.jung } }; },
@@ -69,7 +69,7 @@ window.KR = window.KR || {};
         const out = admits.map(id => { const t = S.tierById(id); return { label: `${t.name} 입학`, hint: `${t.major || e.major} 계열 · ${t.years}년 · 등록금 연 ${money((U.chance(s, 0) ? 0 : t.tuition) * idx(s))} 안팎${t.capital >= 0.8 ? ' · 서울' : t.id === 'national' ? ' · 지방' : ''}`, auto: () => 1 + t.rank * 2 + t.cut / 50, focus: 'study', apply: s => S.enroll(s, id, e.major) }; });
         const best = admits.length ? S.tierById(admits[0]).rank : -1;
         if (e.fallback) out.push({ label: `원래 대학으로 돌아간다 (${e.fallback.univ.kind})`, hint: '반수 끝. 다니던 학교로 복귀한다.', auto: () => admits.length && best > e.fallback.univ.tier ? 0.2 : 2, apply: s => { S.restoreUniv(s); } });
-        out.push({ label: e.repeat >= 1 ? '삼수' : '재수', hint: s => `1년 더. 학원비 ${money(1200 * idx(s))}. 수능 백분위 +4.`, hide: s.year < 1985 || e.repeat >= 2, auto: s => admits.length ? (best <= 1 && s.stats.know >= 62 && s.parents.decile >= 5 ? 0.35 : 0.04) : (s.parents.decile >= 4 ? 0.8 : 0.4), apply: s => { e.stage = 'repeat'; e.repeat += 1; e.plan = null; e.admits = null; S.cost(s, 1200 * idx(s)); S.log(s, e.repeat === 1 ? '재수를 택했다. 독서실 책상이 집이 됐다.' : '삼수. 주변의 눈길이 따가웠다.', 'edu'); S.bump(s, 'happy', -3); } });
+        out.push({ label: e.repeat >= 1 ? '삼수' : '재수', hint: s => `1년 더. 학원비 ${money(1200 * idx(s))}. 수능 백분위 +4.`, hide: s.year < 1985 || e.repeat >= 2, auto: s => admits.length ? (best <= 1 && s.stats.know >= 62 && s.parents.decile >= 5 ? 0.35 : 0.04) : (s.parents.decile >= 4 ? 0.8 : 0.4), apply: s => { e.stage = 'repeat'; e.repeat += 1; e.plan = null; e.admits = null; e.examYear = s.year + 1; S.cost(s, 1200 * idx(s)); S.log(s, e.repeat === 1 ? '재수를 택했다. 독서실 책상이 집이 됐다.' : '삼수. 주변의 눈길이 따가웠다.', 'edu'); S.bump(s, 'happy', -3); } });
         out.push({ label: '추가모집 전문대', hint: '2년. 어디든 들어갈 수 있다.', hide: admits.includes('college') || s.year < 1979, auto: () => admits.length ? 0.02 : 0.5, apply: s => { S.enroll(s, 'college', e.major); } });
         out.push({ label: '방송대·사이버대', hint: '일하면서 다닌다.', hide: admits.includes('cyber') || s.year < 1972, auto: () => admits.length ? 0.01 : 0.08, apply: s => { S.enroll(s, 'cyber', e.major); s.work.status = 'seeking'; } });
         out.push({ label: '취업', hint: '대학 없이 일을 시작한다.', auto: () => admits.length ? 0.03 : 0.5, focus: 'money', apply: s => { e.stage = 'done'; e.plan = null; e.admits = null; s.work.status = 'seeking'; S.log(s, '대학 대신 일을 찾기로 했다.', 'edu'); } });

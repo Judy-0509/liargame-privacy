@@ -270,7 +270,7 @@ window.KR = window.KR || {};
       if (!e.plan || e.plan === '취업') { e.stage = 'done'; e.plan = null; S.log(s, e.hs === '특성화고' ? '특성화고를 졸업하고 바로 취업 전선에 나섰다.' : '고등학교를 졸업하고 일을 찾기로 했다.', 'edu'); s.work.status = 'seeking'; }
       else S.runApplications(s, 0);
     }
-    if (e.stage === 'repeat' && a === 17 + e.repeat) {
+    if (e.stage === 'repeat' && s.year === e.examYear) {
       if (e.plan && e.plan !== '취업') S.runApplications(s, 4 + (e.tutoring ? 2 : 0));
       else if (e.fallback) { S.log(s, '반수를 접었다.', 'edu'); S.restoreUniv(s); }
       else { e.stage = 'done'; e.plan = null; s.work.status = 'seeking'; S.log(s, '재수를 접고 일을 찾기로 했다.', 'edu'); }
@@ -319,7 +319,7 @@ window.KR = window.KR || {};
   function yearMilitary(s) {
     const m = s.mil; if (m.status === 'na') return;
     if (m.status === 'none') {
-      const inUniv = s.edu.stage === 'univ';
+      const inUniv = s.edu.stage === 'univ' || s.edu.stage === 'admitted' || s.edu.stage === 'repeat';
       const due = m.enlistAt != null ? s.age >= m.enlistAt : (inUniv ? s.age >= 20 : s.age >= 19);
       if (!due || s.age < 18) return;
       const h = s.stats.health;
