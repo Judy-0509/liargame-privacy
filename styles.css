@@ -1,10 +1,10 @@
 :root {
-  --bg: #14151a; --bg2: #1c1d24; --card: #22242c; --line: #343743; --text: #ecebe6; --muted: #9a9ca8; --accent: #f2b84b; --accent2: #7fb7ff; --danger: #ff7b86;
+  --bg: #14151a; --bg2: #1c1d24; --card: #22242c; --line: #343743; --text: #ecebe6; --muted: #9a9ca8; --accent: #f2b84b; --accent2: #7fb7ff; --danger: #ff7b86; --ok: #6ee7a0;
   --c-infant: #c9b6e4; --c-school: #8ec5ff; --c-univ: #5f9df7; --c-mil: #6b7a4a; --c-work: #f2b84b; --c-seek: #c87f4f; --c-home: #e59bb8; --c-retire: #9bb59c; --c-care: #8e8e9a; --c-dead: #3a3b44;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
-  --bg: #f4f2ec; --bg2: #ebe8e0; --card: #fffdf8; --line: #ddd8cc; --text: #1e1f24; --muted: #6b6d78; --accent: #b9791a; --accent2: #2a6fd6; --danger: #c8323f; --c-dead: #ddd8cc;
+  --bg: #f4f2ec; --bg2: #ebe8e0; --card: #fffdf8; --line: #ddd8cc; --text: #1e1f24; --muted: #6b6d78; --accent: #b9791a; --accent2: #2a6fd6; --danger: #c8323f; --ok: #1f8a4c; --c-dead: #ddd8cc;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -271,6 +271,10 @@ textarea { resize: vertical; }
 .tl li.note .t { font-style: italic; color: var(--accent); }
 .tl li.odds .t, .tl li.warn .t { color: var(--accent); }
 .tl li.birth .t { font-weight: 600; }
+.tl li.pass .t { color: var(--ok); font-weight: 600; }
+.tl li.fail .t { color: var(--danger); }
+.tl li.exam .t { color: var(--muted); }
+.log li.pass .t { color: var(--ok); } .log li.fail .t { color: var(--danger); }
 .tl .star { background: none; border: 0; color: var(--muted); padding: 0 4px; font-size: .95rem; }
 .tl .star.on { color: var(--accent); }
 .standing { display: grid; gap: 4px; margin: 8px 0; }

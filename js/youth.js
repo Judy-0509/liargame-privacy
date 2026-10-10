@@ -108,8 +108,8 @@ window.KR = window.KR || {};
     id: 'gifted', when: never, max: 1, valid: s => s.edu.stage === 'elem',
     title: '영재원에 지원할까', text: s => `스펙 ${Math.round(s.stats.know)}. 교육청 영재교육원은 학생 2% 남짓이 다닌다.`,
     options: s => [
-      { label: '교육청 영재원 지원', hint: s => `합격 가능성 ${pct((s.stats.know - 58) / 35)}. 주말마다 수업.`, auto: s => s.stats.know >= 74 ? 0.5 : 0.25, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 58) / 35)) { s.edu.gifted = true; S.bump(s, 'know', 5); S.cost(s, 60 * idx(s)); log(s, '영재교육원에 합격했다. 토요일마다 다른 학교 아이들과 수업을 들었다.'); S.bump(s, 'happy', 3); } else { log(s, '영재원 선발에서 떨어졌다.'); S.bump(s, 'happy', -3); } } },
-      { label: '대학부설 영재원 지원', hint: s => `합격 가능성 ${pct((s.stats.know - 70) / 30)}. 더 어렵고 더 멀다.`, hide: s.stats.know < 76, auto: () => 0.3, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 70) / 30)) { s.edu.gifted = true; S.bump(s, 'know', 7); S.cost(s, 150 * idx(s)); log(s, '대학부설 영재교육원에 합격했다. 주말마다 대학 강의실에 앉았다.'); S.bump(s, 'happy', 3); } else { log(s, '대학부설 영재원 선발에서 떨어졌다.'); S.bump(s, 'happy', -3); } } },
+      { label: '교육청 영재원 지원', hint: s => `합격 가능성 ${pct((s.stats.know - 58) / 35)}. 주말마다 수업.`, auto: s => s.stats.know >= 74 ? 0.5 : 0.25, focus: 'study', apply: s => { const p = (s.stats.know - 58) / 35; S.logExam(s, '교육청 영재원', p); if (U.chance(s, p)) { s.edu.gifted = true; S.bump(s, 'know', 5); S.cost(s, 60 * idx(s)); S.logResult(s, '교육청 영재원', true, '토요일마다 다른 학교 아이들과 수업을 들었다.'); S.bump(s, 'happy', 3); } else { S.logResult(s, '교육청 영재원', false); S.bump(s, 'happy', -3); } } },
+      { label: '대학부설 영재원 지원', hint: s => `합격 가능성 ${pct((s.stats.know - 70) / 30)}. 더 어렵고 더 멀다.`, hide: s.stats.know < 76, auto: () => 0.3, focus: 'study', apply: s => { const p = (s.stats.know - 70) / 30; S.logExam(s, '대학부설 영재원', p); if (U.chance(s, p)) { s.edu.gifted = true; S.bump(s, 'know', 7); S.cost(s, 150 * idx(s)); S.logResult(s, '대학부설 영재원', true, '주말마다 대학 강의실에 앉았다.'); S.bump(s, 'happy', 3); } else { S.logResult(s, '대학부설 영재원', false); S.bump(s, 'happy', -3); } } },
       { label: '지원하지 않는다', hint: '주말은 노는 날.', auto: () => 0.35, focus: 'rest', apply: s => { S.bump(s, 'happy', 1); } },
     ],
   });
@@ -122,15 +122,32 @@ window.KR = window.KR || {};
       { label: '보내지 않는다', hint: '', auto: () => 0.63, apply: () => { } },
     ],
   });
+  const intlP = s => U.clamp((s.stats.know - 55) / 40 * (s.year >= 2015 ? 0.6 : 1) + (s.year >= 2015 ? 0.15 : 0), 0.05, 0.8);
+  const artMidP = s => U.clamp(0.4 + (s.stats.happy - 50) / 100 + (s.flags.piano || s.flags.art ? 0.15 : 0), 0.2, 0.8);
+  push_({
+    id: 'mid_choice', when: s => s.age === 11 && s.edu.stage === 'elem' && s.year >= 1990, max: 1,
+    title: '어느 중학교로 갈까', text: s => `초등학교 6학년. 스펙 ${Math.round(s.stats.know)}. 대부분은 집 근처 중학교에 배정된다.`,
+    options: s => [
+      { label: '배정받은 중학교', hint: '가장 많은 길. 동네 친구들과 같이 간다.', auto: () => 0.85, apply: s => { S.bump(s, 'rel', 1); } },
+      { label: '국제중 지원', hint: s => `합격 가능성 ${pct(intlP(s))}. 학비 연 ${money(1000 * idx(s))}. 영어로 수업한다.`, hide: s.year < 2009 || s.stats.know < 60 || dec(s) < 5, auto: s => s.stats.know >= 75 ? 0.3 : 0.1, focus: 'study', apply: s => { const p = intlP(s); S.logExam(s, '국제중', p); if (U.chance(s, p)) { s.edu.ms = '국제중'; S.bump(s, 'know', 4); S.cost(s, 3000 * idx(s)); s.flags.intl = true; S.logResult(s, '국제중', true, '영어로 수업을 들었다. 학비가 대학 등록금만큼 들었다.'); S.bump(s, 'happy', 2); } else { S.logResult(s, '국제중', false, '배정받은 중학교로 갔다.'); S.bump(s, 'happy', -3); } } },
+      { label: '예술중 지원', hint: s => `실기 합격 가능성 ${pct(artMidP(s))}. 레슨비가 든다.`, hide: !(s.flags.piano || s.flags.art) || dec(s) < 4, auto: () => 0.15, focus: 'rest', apply: s => { const p = artMidP(s); S.logExam(s, '예술중', p); if (U.chance(s, p)) { s.edu.ms = '예술중'; s.flags.art = true; S.cost(s, 1500 * idx(s)); S.logResult(s, '예술중', true, '실기실과 연습실에서 살았다.'); S.bump(s, 'happy', 4); } else { S.logResult(s, '예술중', false); S.bump(s, 'happy', -3); } } },
+    ],
+  });
   push_({
     id: 'sci_prep', when: never, max: 1, valid: s => s.edu.stage === 'mid' && !s.edu.hs,
     title: '영재고·과학고 입시를 준비할까', text: s => `스펙 ${Math.round(s.stats.know)}. 영재고는 한 해 800명, 과학고는 1,600명 남짓을 뽑는다.`,
     options: s => [
       { label: '준비한다', hint: s => `학원비 연 ${money(2400 * idx(s))}. ${s.year >= 2003 ? '영재고 ' + pct((s.stats.know - 78) / 30) + ', ' : ''}과학고 ${pct((s.stats.know - 72) / 30)}.`, auto: s => dec(s) >= 6 ? 0.5 : 0.25, focus: 'study', apply: s => {
         S.cost(s, 2400 * idx(s)); S.bump(s, 'know', 4); S.bump(s, 'health', -2);
-        if (s.year >= 2003 && U.chance(s, (s.stats.know - 78) / 30)) { s.edu.hs = '영재고'; log(s, '영재학교에 합격했다. 전국에서 모인 아이들 사이에 앉았다.'); S.bump(s, 'happy', 6); }
-        else if (U.chance(s, (s.stats.know - 72) / 30)) { s.edu.hs = '과학고'; log(s, '과학고에 합격했다.'); S.bump(s, 'happy', 5); }
-        else { log(s, '영재고·과학고 입시에서 떨어졌다. 일반고 원서를 썼다.'); S.bump(s, 'happy', -4); }
+        const pg = (s.stats.know - 78) / 30, ps = (s.stats.know - 72) / 30;
+        if (s.year >= 2003) S.logExam(s, '영재학교', pg);
+        if (s.year >= 2003 && U.chance(s, pg)) { s.edu.hs = '영재고'; S.logResult(s, '영재학교', true, '전국에서 모인 아이들 사이에 앉았다.'); S.bump(s, 'happy', 6); }
+        else {
+          if (s.year >= 2003) S.logResult(s, '영재학교', false);
+          S.logExam(s, '과학고', ps);
+          if (U.chance(s, ps)) { s.edu.hs = '과학고'; S.logResult(s, '과학고', true); S.bump(s, 'happy', 5); }
+          else { S.logResult(s, '과학고', false, '일반고 원서를 썼다.'); S.bump(s, 'happy', -4); }
+        }
       } },
       { label: '준비하지 않는다', hint: '', auto: () => 0.5, apply: () => { } },
     ],

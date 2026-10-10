@@ -124,8 +124,8 @@
   }
   function afterYear(instant) {
     const s = A.s;
-    if (!s.alive) { A.busy = true; stopPlay(); setTimeout(onDeath, instant ? 300 : 1200); return; }
-    if (S.SNAP_AGES.includes(s.age)) { A.busy = true; setTimeout(() => { A.busy = false; showChapter(s.age); }, instant ? 250 : 850); }
+    if (!s.alive) { A.busy = true; stopPlay(); setTimeout(onDeath, instant ? 300 : 1900); return; }
+    if (S.SNAP_AGES.includes(s.age)) { A.busy = true; setTimeout(() => { A.busy = false; showChapter(s.age); }, instant ? 250 : 1700); }
   }
   function finishYear(instant) {
     const s = A.s;
@@ -135,9 +135,9 @@
     clearReveals();
     if (instant) { for (const e of entries) UI.prependLog(s, e); }
     else {
-      A.anim = { t0: nowMs(), dur: 700 };
-      const gap = Math.min(220, 600 / Math.max(1, entries.length));
-      entries.forEach((e, i) => A.reveals.push(setTimeout(() => UI.prependLog(s, e), 120 + i * gap)));
+      A.anim = { t0: nowMs(), dur: 1600 };
+      const gap = Math.min(380, 1300 / Math.max(1, entries.length));
+      entries.forEach((e, i) => A.reveals.push(setTimeout(() => UI.prependLog(s, e), 200 + i * gap)));
     }
     save(); afterYear(instant);
   }
@@ -313,12 +313,13 @@
     if (s.map.length < s.age + 1) { A.phase = 'deciding'; processDecisions(); } else A.phase = 'idle';
   }
   function stopPlay() { if (A.play) { clearInterval(A.play); A.play = null; } }
-  function togglePlay() { if (A.play) stopPlay(); else { A.play = setInterval(() => { if (A.s && A.s.alive) nextYear(); else stopPlay(); }, 1100); nextYear(); } }
+  function togglePlay() { if (A.play) stopPlay(); else { A.play = setInterval(() => { if (A.s && A.s.alive) nextYear(); else stopPlay(); }, 3000); nextYear(); } }
 
   function openMenu() {
     const s = A.s;
     const body = UI.modal(`<h2>메뉴</h2><div class="menu">
-      <button data-m="play">자동 재생(1.1초에 한 해): ${A.play ? '켜짐' : '꺼짐'}</button>
+      <button data-m="play">자동 재생(3초에 한 해): ${A.play ? '켜짐' : '꺼짐'}</button>
+      <button data-m="pixel">상단 그림: ${KR.PIXEL.STYLES[KR.PIXEL.style] || ''} (바꾸기)</button>
       <button data-m="auto">자동 결정: ${A.auto ? '켜짐' : '꺼짐'}</button>
       <button data-m="music">음악: ${A.music ? '켜짐' : '꺼짐'}</button>
       <button data-m="theme">화면: ${document.documentElement.dataset.theme === 'light' ? '밝게' : '어둡게'}</button>
@@ -333,6 +334,7 @@
     body.querySelectorAll('button[data-m]').forEach(b => b.onclick = () => {
       const m = b.dataset.m;
       if (m === 'play') { UI.closeModal(); togglePlay(); }
+      else if (m === 'pixel') { const ks = Object.keys(KR.PIXEL.STYLES); KR.PIXEL.style = ks[(ks.indexOf(KR.PIXEL.style) + 1) % ks.length]; LS.set('krlife.pixel', KR.PIXEL.style); openMenu(); }
       else if (m === 'auto') { A.auto = !A.auto; $('auto').checked = A.auto; save(); openMenu(); }
       else if (m === 'music') { toggleMusic(); openMenu(); }
       else if (m === 'theme') { toggleTheme(); openMenu(); }
@@ -406,6 +408,7 @@
 
   function init() {
     const theme = LS.get('krlife.theme', null); if (theme) document.documentElement.dataset.theme = theme;
+    const q0 = new URLSearchParams(location.search); const ps = q0.get('pixel') || LS.get('krlife.pixel', null); if (ps && KR.PIXEL.STYLES[ps]) KR.PIXEL.style = ps;
     const sel = $('real-region'); D.regions.forEach((r, i) => { const o = document.createElement('option'); o.value = i; o.textContent = r.short; sel.appendChild(o); });
     const real = LS.get('krlife.real', null); if (real) { if (real.year) $('real-year').value = real.year; if (real.sex) $('real-sex').value = real.sex; if (real.region != null && real.region !== '') $('real-region').value = real.region; }
     $('era-seg').querySelectorAll('button').forEach(b => b.onclick = () => setEra(b.dataset.era));

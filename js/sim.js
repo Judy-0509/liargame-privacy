@@ -69,6 +69,8 @@ window.KR = window.KR || {};
   const decileF = d => Math.exp((5.5 - d) * 0.06);
   const expectedHealth = a => a < 25 ? 78 + a / 25 * 4 : 82 - 0.45 * (a - 25);
 
+  S.logExam = (s, school, p) => S.log(s, `${school} 지원. 합격 가능성 ${Math.round(U.clamp(p, 0, 1) * 100)}%.`, 'exam');
+  S.logResult = (s, school, ok, note) => S.log(s, `${school} ${ok ? '합격' : '불합격'}${note ? '. ' + note : ''}`, ok ? 'pass' : 'fail');
   S.log = (s, t, k = 'life') => { s.log.push({ a: s.age, y: s.year, t, k }); if (s.log.length > 900) s.log.shift(); };
   S.bump = (s, k, d) => { s.stats[k] = U.clamp(s.stats[k] + d, 0, 100); };
   S.cost = (s, v) => { s.money.assets -= v; s.money.spentYear = (s.money.spentYear || 0) + v; };
@@ -276,7 +278,7 @@ window.KR = window.KR || {};
     if (a === 3) { S.log(s, '어린이집에 다니기 시작했다.', 'edu'); }
     if (a === 6) { e.stage = 'elem'; S.log(s, '초등학교에 입학했다.', 'edu'); e.tutoring = U.chance(s, tutoringProb(s) * Math.min(1, S.incomeIndex(y) * 1.4)); if (e.tutoring) S.log(s, '학원에 다니기 시작했다.', 'edu'); }
     if (a === 12) {
-      if (U.chance(s, yr('midRate', y))) { e.stage = 'mid'; S.log(s, '중학교에 들어갔다.', 'edu'); }
+      if (U.chance(s, yr('midRate', y))) { e.stage = 'mid'; S.log(s, `${e.ms || '중학교'}에 들어갔다.`, 'edu'); }
       else { e.stage = 'none'; e.degree = '초졸'; S.log(s, '중학교에 가지 못했다. 집안일과 농사를 도왔다.', 'edu'); s.work.status = 'child'; s.flags.noSchool = true; }
     }
     if (a === 15 && e.stage === 'mid') {
@@ -334,7 +336,7 @@ window.KR = window.KR || {};
     }
   }
 
-  S.hsBonus = s => { const h = s.edu.hs; return (h === '영재고' || h === '과학고' ? 10 : h === '외고' ? 5 : h === '자사고' ? 4 : 0) + (s.edu.gifted ? 2 : 0); };
+  S.hsBonus = s => { const h = s.edu.hs; return (h === '영재고' || h === '과학고' ? 10 : h === '외고' ? 5 : h === '자사고' ? 4 : 0) + (s.edu.gifted ? 2 : 0) + (s.edu.ms === '국제중' ? 2 : 0); };
 
   function yearMilitary(s) {
     const m = s.mil; if (m.status === 'na') return;

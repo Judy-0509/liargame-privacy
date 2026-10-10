@@ -48,9 +48,9 @@ window.KR = window.KR || {};
     $('moneyline').innerHTML = parts.map(p => `<span>${p}</span>`).join('');
   };
 
-  const ICON = { edu: '🎓', work: '💼', love: '❤️', kid: '🍼', family: '👪', home: '🏠', health: '💊', warn: '⚠️', mil: '🎖️', money: '💰', item: '🛍️', hist: '📰', flavor: '✨', note: '✍️', odds: '🎲', youth: '🌱', birth: '👶', death: '🕯️' };
+  const ICON = { exam: '📝', pass: '✅', fail: '❌', edu: '🎓', work: '💼', love: '❤️', kid: '🍼', family: '👪', home: '🏠', health: '💊', warn: '⚠️', mil: '🎖️', money: '💰', item: '🛍️', hist: '📰', flavor: '✨', note: '✍️', odds: '🎲', youth: '🌱', birth: '👶', death: '🕯️' };
   UI.icon = k => ICON[k] || '·';
-  const KEY_KINDS = ['death', 'birth', 'edu', 'work', 'love', 'kid', 'home', 'mil', 'health', 'money', 'family', 'hist'];
+  const KEY_KINDS = ['death', 'birth', 'pass', 'fail', 'edu', 'work', 'love', 'kid', 'home', 'mil', 'health', 'money', 'family', 'hist'];
   const decadeOf = a => Math.floor(a / 10);
   const decadeLabel = d => d === 0 ? '0~9세' : `${d * 10}대`;
   const short = (t, n) => t.length > n ? t.slice(0, n) + '…' : t;
