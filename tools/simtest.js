@@ -1,8 +1,8 @@
 globalThis.window = globalThis;
-require('../js/data.js'); require('../js/sim.js'); require('../js/decisions.js'); require('../js/youth.js');
+require('../js/data.js'); require('../js/sim.js'); require('../js/admission.js'); require('../js/decisions.js'); require('../js/youth.js');
 const S = KR.Sim, D = KR.DATA;
 const N = +process.argv[2] || 2000, BY = +process.argv[3] || 2026;
-const acc = { marryAge: { M: [], F: [] }, know17: [], partnerEver: 0, firstKidAge: [], inc35: [], kidsDist: {}, n: 0, deathAge: { M: [], F: [] }, infant: 0, univ: 0, capital: 0, married: 0, kids: 0, divorced: 0, own: 0, assets: [], causes: {}, cancer: 0, decisions: {}, smoker: 0, poverty: 0, mil: {}, degree: {}, jobs: {}, logLen: [], errors: 0 };
+const acc = { tiers: {}, majors: {}, marryAge: { M: [], F: [] }, know17: [], partnerEver: 0, firstKidAge: [], inc35: [], kidsDist: {}, n: 0, deathAge: { M: [], F: [] }, infant: 0, univ: 0, capital: 0, married: 0, kids: 0, divorced: 0, own: 0, assets: [], causes: {}, cancer: 0, decisions: {}, smoker: 0, poverty: 0, mil: {}, degree: {}, jobs: {}, logLen: [], errors: 0 };
 const t0 = Date.now();
 for (let i = 0; i < N; i++) {
   let s;
@@ -17,7 +17,9 @@ for (let i = 0; i < N; i++) {
   acc.deathAge[s.sex].push(s.death ? s.death.age : 130);
   if (s.death && s.death.age === 0) acc.infant++;
   if (s.edu.univ) acc.univ++;
-  if (s.edu.univ && s.edu.univ.tier === 2) acc.capital++;
+  if (s.edu.univ && s.edu.univ.capital) acc.capital++;
+  if (s.edu.univ) acc.tiers[s.edu.univ.id] = (acc.tiers[s.edu.univ.id] || 0) + 1;
+  if (s.edu.major) acc.majors[s.edu.major] = (acc.majors[s.edu.major] || 0) + 1;
   if (sm.married) acc.married++;
   acc.kids += s.kids.length;
   if (s.love.divorced) acc.divorced++;
@@ -48,6 +50,7 @@ console.log('univ', pct(acc.univ), 'capital univ', pct(acc.capital), '| degrees'
 console.log('married', pct(acc.married), 'divorced', pct(acc.divorced), 'kids/person', (acc.kids / acc.n).toFixed(2), '| own home at death', pct(acc.own), '| poverty', pct(acc.poverty));
 console.log('assets median', median(acc.assets), 'mean', Math.round(mean(acc.assets)), '| cancer ever', pct(acc.cancer), '| smoker ever', pct(acc.smoker));
 console.log('mil', JSON.stringify(acc.mil));
+console.log('tiers', JSON.stringify(acc.tiers), 'majors', JSON.stringify(acc.majors));
 console.log('jobs', JSON.stringify(acc.jobs));
 console.log('causes', JSON.stringify(Object.entries(acc.causes).sort((a, b) => b[1] - a[1]).slice(0, 12)));
 console.log('decisions', JSON.stringify(acc.decisions));

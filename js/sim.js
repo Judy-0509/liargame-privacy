@@ -145,7 +145,12 @@ window.KR = window.KR || {};
     const def = KR.DECISIONS.find(d => d.id === id);
     if (!def || (def.valid && !def.valid(s))) { s.queue = s.queue.filter(q => q !== id); return null; }
     const opts = def.options(s).filter(o => !o.hide);
-    return { id, title: typeof def.title === 'function' ? def.title(s) : def.title, text: typeof def.text === 'function' ? def.text(s) : def.text, options: opts.map(o => ({ label: o.label, hint: typeof o.hint === 'function' ? o.hint(s) : o.hint })) , _opts: opts };
+    return { id, title: typeof def.title === 'function' ? def.title(s) : def.title, text: typeof def.text === 'function' ? def.text(s) : def.text, options: opts.map(o => ({ label: o.label, hint: typeof o.hint === 'function' ? o.hint(s) : o.hint, custom: o.custom || null })) , _opts: opts };
+  };
+  S.resolveCustom = (s, id, payload) => {
+    const def = KR.DECISIONS.find(d => d.id === id); if (!def || !def.applyCustom) return null;
+    s.taken[id] = (s.taken[id] || 0) + 1; s.last[id] = s.age; s.queue = s.queue.filter(q => q !== id);
+    def.applyCustom(s, payload); return true;
   };
   S.resolve = (s, id, idx) => {
     const d = S.decision(s, id); if (!d) return null; const opt = d._opts[idx] || d._opts[0];
@@ -178,7 +183,7 @@ window.KR = window.KR || {};
     if (s.work.status === 'retired') return 'retire';
     if (s.edu.stage === 'univ' || s.edu.stage === 'grad') return 'univ';
     if (s.work.status === 'employed' || s.work.status === 'self') return 'work';
-    if (s.work.status === 'seeking' || s.work.status === 'unemployed') return 'seek';
+    if (s.work.status === 'seeking' || s.work.status === 'unemployed' || s.work.status === 'rest') return 'seek';
     if (s.work.status === 'home') return 'home';
     if (s.age < 6) return 'infant';
     return 'school';
@@ -260,18 +265,12 @@ window.KR = window.KR || {};
     }
     if (a === 17 && e.stage === 'high') {
       e.degree = '고졸'; s.flags.know17 = Math.round(s.stats.know);
-      const plan = e.plan || '취업';
-      const score = s.stats.know + U.normal(s, 0, 7) + (e.tutoring ? 4 : 0) + S.hsBonus(s);
-      e.score = score;
-      if (plan === '재수') { e.repeat += 1; e.stage = 'repeat'; e.prevPlan = e.prevPlan || (s.stats.know >= 82 ? '최상위권' : '수도권4년제'); S.log(s, '수능을 봤다. 결과가 아쉬워 재수를 택했다.', 'edu'); S.cost(s, 1200 * S.incomeIndex(y)); }
-      else if (plan === '취업') { e.stage = 'done'; S.log(s, e.hs === '특성화고' ? '특성화고를 졸업하고 바로 취업 전선에 나섰다.' : '고등학교를 졸업하고 일을 찾기로 했다.', 'edu'); s.work.status = 'seeking'; }
-      else admit(s, plan, score);
+      if (!e.plan || e.plan === '취업') { e.stage = 'done'; e.plan = null; S.log(s, e.hs === '특성화고' ? '특성화고를 졸업하고 바로 취업 전선에 나섰다.' : '고등학교를 졸업하고 일을 찾기로 했다.', 'edu'); s.work.status = 'seeking'; }
+      else S.runApplications(s, 0);
     }
-    if (e.stage === 'repeat') {
-      if (a >= 18 && a === 17 + e.repeat) {
-        const score = s.stats.know + U.normal(s, 0, 7) + 5 + (e.tutoring ? 3 : 0) + S.hsBonus(s); e.score = score;
-        admit(s, e.plan === '재수' ? (e.prevPlan || '수도권4년제') : e.plan, score);
-      }
+    if (e.stage === 'repeat' && a === 17 + e.repeat) {
+      if (e.plan && e.plan !== '취업') S.runApplications(s, 4 + (e.tutoring ? 2 : 0));
+      else { e.stage = 'done'; e.plan = null; s.work.status = 'seeking'; S.log(s, '재수를 접고 일을 찾기로 했다.', 'edu'); }
     }
     if (e.stage === 'univ' || e.stage === 'grad') {
       if (s.mil.status !== 'serving') {
@@ -280,24 +279,27 @@ window.KR = window.KR || {};
           if (U.chance(s, 0.08) && e.left > 1) { e.left += 1; S.log(s, '한 해 휴학했다.', 'edu'); }
           else if (s.stats.know > 68 && s.parents.decile >= 6 && U.chance(s, 0.1) && e.left > 1) { S.log(s, '교환학생으로 한 학기를 보냈다.', 'edu'); S.bump(s, 'know', 3); S.bump(s, 'happy', 4); S.cost(s, 800 * S.incomeIndex(y)); }
           if (e.tuition === '알바') { S.bump(s, 'happy', -2); S.bump(s, 'know', -1); S.gain(s, 600 * S.incomeIndex(y)); }
-          if (e.tuition === '대출') { s.money.debt += (e.univ.public ? D.edu.tuitionPublic : D.edu.tuitionPrivate) * S.incomeIndex(y); }
+          if (e.tuition === '대출') { s.money.debt += e.univ.tuition * S.incomeIndex(y); }
           else if (e.tuition === '장학금') { }
           else if (e.tuition === '부모' && s.parents.decile <= 4) S.bump(s, 'rel', 1);
           S.bump(s, 'know', s.focus === 'study' ? 4 : 2.5);
+          if (e.univ.years >= 4 && !e.univ.online && !e.sub && e.left === e.univ.years - 2) pushDecision(s, 'submajor');
         } else S.bump(s, 'know', 4);
         if (e.left <= 0) {
           if (e.stage === 'univ') {
-            e.degree = e.univ.kind === '전문대' ? '전문대졸' : '대졸'; e.grad = true;
-            S.log(s, `${e.univ.kind === '전문대' ? '전문대' : e.univ.kind === '의약계열' ? '의약계열 대학' : '대학'}을 졸업했다.`, 'edu');
+            e.degree = e.univ.years === 2 ? '전문대졸' : '대졸'; e.grad = true;
+            S.log(s, `${e.univ.kind}을(를) 졸업했다.`, 'edu');
             e.stage = 'done'; s.work.status = 'seeking';
-            if (e.univ.kind === '의약계열') { const t = U.weighted(s, [['의사', 55], ['치과의사', 12], ['한의사', 10], ['약사', 23]], x => x[1])[0]; S.startJob(s, '의료', `${t} 면허를 땄다. 수련이 시작됐다.`, t); }
-            else if (e.major === '법·행정' && s.year >= 2009 && s.stats.know >= 70) pushDecision(s, 'lawschool');
-            else if (s.stats.know >= 72 && e.univ.kind !== '전문대') pushDecision(s, 'grad_school');
+            if (e.univ.med) { const t = e.sub === '의예' ? '의사' : U.weighted(s, [['치과의사', 40], ['한의사', 25], ['약사', 35]], x => x[1])[0]; S.startJob(s, '의료', `${t} 면허를 땄다. 수련이 시작됐다.`, t); }
+            else if (e.sub === '간호') { if (U.chance(s, 0.9)) S.startJob(s, '간호', '간호사 면허를 따고 병원에서 일을 시작했다.', '간호사'); }
+            else if (e.sub === '법·행정' && s.year >= 2009 && s.stats.know >= 70) pushDecision(s, 'lawschool');
+            else if (s.stats.know >= 72 && e.univ.years >= 4 && !e.univ.online) pushDecision(s, 'grad_school');
           } else if (e.lawschool) { e.degree = '대학원졸'; e.stage = 'done'; e.lawschool = false; if (U.chance(s, 0.55 + (s.stats.know - 70) / 200)) S.startJob(s, '전문직', '변호사 시험에 합격했다.', '변호사'); else { s.work.status = 'seeking'; S.log(s, '변호사 시험에 떨어졌다. 다른 길을 찾아야 했다.', 'edu'); s.yearShock.happy -= 8; } }
           else { e.degree = '대학원졸'; e.stage = 'done'; s.work.status = 'seeking'; S.log(s, '대학원을 마쳤다.', 'edu'); }
         }
       }
     }
+    if ((a === 14 && e.stage === 'mid') || (a === 16 && e.stage === 'high')) pushDecision(s, 'tutoring_choice');
     if (e.stage === 'elem' || e.stage === 'mid' || e.stage === 'high') {
       let gain = 2.0 + (e.tutoring ? 1.0 : 0) + (s.focus === 'study' ? 1.5 : 0) + (s.parents.decile - 5.5) * 0.12 + U.normal(s, 0, 1.3);
       if (s.parents.hard > 0 && e.tutoring && U.chance(s, 0.5)) { e.tutoring = false; S.log(s, '형편이 어려워져 학원을 그만뒀다.', 'edu'); }
@@ -306,32 +308,6 @@ window.KR = window.KR || {};
       if (U.chance(s, D.edu.bullying * (s.stats.rel < 45 ? 2.5 : 1))) { S.log(s, '학교에서 괴롭힘을 당했다. 말할 사람이 없었다.', 'edu'); s.yearShock.happy -= 14; s.yearShock.rel -= 8; S.bump(s, 'know', -2); }
       if (e.stage === 'high' && s.flags.hsClub == null && U.chance(s, 0.3)) { s.flags.hsClub = true; S.log(s, '동아리에서 평생 친구를 만났다.', 'edu'); S.bump(s, 'rel', 5); }
     }
-  }
-
-  function admit(s, plan, score) {
-    const e = s.edu, y = s.year;
-    const cap = region(s).capital;
-    const pCapital = 1 / (1 + Math.exp(-(score - 70) / 7));
-    const pLocal = 1 / (1 + Math.exp(-(score - 48) / 8));
-    const eraUniv = yr('univRate', y) / 0.73;
-    const pTop = 1 / (1 + Math.exp(-(score - 93) / 4));
-    const pMed = 1 / (1 + Math.exp(-(score - 93) / 3.5)) * (y >= 1990 ? 1 : 0.7);
-    let kind = null, major = null;
-    const capitalChain = () => { if (U.chance(s, pCapital * Math.min(1, eraUniv + 0.1))) return '수도권 4년제'; if (U.chance(s, pLocal)) return '지방 4년제'; return '전문대'; };
-    if (plan === '의약') { if (U.chance(s, pMed)) { kind = '의약계열'; major = '의약'; } else { S.log(s, '의대 문턱은 높았다.', 'edu'); kind = U.chance(s, pTop) ? '최상위권 4년제' : capitalChain(); } }
-    else if (plan === '최상위권') { if (U.chance(s, pTop)) kind = '최상위권 4년제'; else kind = capitalChain(); }
-    else if (plan === '수도권4년제') kind = capitalChain();
-    else if (plan === '4년제') { kind = U.chance(s, pLocal * Math.min(1.1, eraUniv + 0.2)) ? (cap && U.chance(s, 0.5) ? '수도권 4년제' : '지방 4년제') : '전문대'; }
-    else if (plan === '예체능') { major = '예체능'; const sc = score + 12; kind = U.chance(s, 1 / (1 + Math.exp(-(sc - 70) / 7))) ? '수도권 4년제' : U.chance(s, 1 / (1 + Math.exp(-(sc - 48) / 8))) ? '지방 4년제' : '전문대'; }
-    else kind = '전문대';
-    if ((plan === '수도권4년제' || plan === '최상위권' || plan === '4년제') && kind === '전문대') S.log(s, '원하던 대학에는 가지 못했다.', 'edu');
-    const isPublic = U.chance(s, kind === '전문대' ? 0.1 : kind === '최상위권 4년제' || kind === '의약계열' ? 0.45 : 0.25);
-    e.univ = { kind, public: isPublic, tier: kind === '최상위권 4년제' || kind === '의약계열' ? 3 : kind === '수도권 4년제' ? 2 : kind === '지방 4년제' ? 1 : 0 };
-    e.major = major || (KR.YOUTH ? KR.YOUTH.majorOf(s, e.track || '문과') : null);
-    e.stage = 'univ'; e.left = kind === '전문대' ? 2 : kind === '의약계열' ? 6 : 4;
-    S.log(s, `${kind === '의약계열' ? '의약계열 대학' : kind === '최상위권 4년제' ? '최상위권 대학' : kind + ' 대학'}에 입학했다.${e.major && kind !== '의약계열' ? ` 전공은 ${e.major}.` : ''} (수능 성적 상위 ${Math.max(1, Math.round(100 - score))}% 수준)`, 'edu');
-    if (kind !== '전문대' && e.univ.tier >= 2 && !cap) { s.flags.movedCapital = true; s.housing = 'monthly'; S.log(s, '서울로 올라와 자취를 시작했다.', 'home'); }
-    if (s.parents.decile <= 5) pushDecision(s, 'tuition'); else e.tuition = '부모';
   }
 
   S.hsBonus = s => { const h = s.edu.hs; return (h === '영재고' || h === '과학고' ? 10 : h === '외고' ? 5 : h === '자사고' ? 4 : 0) + (s.edu.gifted ? 2 : 0); };
@@ -365,8 +341,8 @@ window.KR = window.KR || {};
     let p = j.start * S.payIndex(s.year) * Math.pow(1 + j.growth, eff) * (s.abroad ? 1.0 : region(s).wage);
     if (s.age > j.peak) p *= Math.pow(0.97, s.age - j.peak);
     const deg = s.edu.degree;
-    p *= deg === '대학원졸' ? 1.15 : deg === '대졸' ? (s.edu.univ && s.edu.univ.tier === 3 ? 1.2 : s.edu.univ && s.edu.univ.tier === 2 ? 1.1 : 1.0) : deg === '전문대졸' ? 0.9 : deg === '고졸' ? 0.82 : 0.72;
-    p *= s.edu.major === '공학' ? 1.05 : s.edu.major === '예체능' ? 0.9 : s.edu.major === '인문사회' ? 0.97 : 1;
+    p *= deg === '대학원졸' ? 1.15 * (s.edu.univ ? Math.max(1, s.edu.univ.wage) : 1) : deg === '대졸' || deg === '전문대졸' ? (s.edu.univ ? s.edu.univ.wage : 1) : deg === '고졸' ? 0.82 : 0.72;
+    const mj = D.majors[s.edu.major]; if (mj) p *= mj.pay; if (s.edu.sub === '컴퓨터·소프트웨어' && s.year >= 2010) p *= 1.05;
     if (s.sex === 'F') p *= D.work.genderGap;
     if (s.work.careerBreak) p *= 0.78;
     p *= 0.8 + s.stats.know / 250;
@@ -395,6 +371,7 @@ window.KR = window.KR || {};
     const w = s.work, a = s.age;
     if (s.mil.status === 'serving') return;
     if (w.status === 'child' && a >= 15 && (s.edu.stage === 'none')) w.status = 'seeking';
+    if (w.status === 'rest') { w.status = 'seeking'; w.seeking += 1; return; }
     if (w.status === 'seeking') {
       w.seeking += 1;
       if (w.exam > 0) {
@@ -470,8 +447,8 @@ window.KR = window.KR || {};
     else if (plan === '창업') { const cap = Math.round(5000 * S.incomeIndex(s.year)); if (s.money.assets < cap) s.money.debt += cap - Math.max(0, s.money.assets); s.money.assets = Math.max(0, s.money.assets - cap); S.startJob(s, '자영업', '빚을 내어 가게를 열었다.'); }
     else if (plan === '프리랜서') S.startJob(s, '프리랜서');
     else if (plan === '해외') { s.abroad = true; s.housing = 'monthly'; S.startJob(s, '해외', '짐을 싸서 한국을 떠났다. 해외에서 일을 시작했다.'); s.yearShock.rel -= 8; s.yearShock.happy += 4; }
-    else if (plan === '임용') { if (U.chance(s, 0.35)) S.startJob(s, '공공', '임용시험에 합격했다. 교단에 섰다.', '교사'); else { S.log(s, '임용시험에 떨어졌다. 기간제 교사로 한 해를 보냈다.', 'work'); S.gain(s, 1500 * S.incomeIndex(s.year)); } }
-    else if (plan === '전문직') { if (U.chance(s, 0.5)) S.startJob(s, '전문직', '전문 자격을 얻었다.', U.pick(s, ['회계사', '변리사', '세무사', '감정평가사'])); else { S.log(s, '시험에 떨어졌다. 한 해를 더 준비했다.', 'work'); S.cost(s, 1500 * S.incomeIndex(s.year)); } }
+    else if (plan === '임용') { if (U.chance(s, w.examP || 0.35)) S.startJob(s, '공공', '임용시험에 합격했다. 교단에 섰다.', s.edu.sub === '유아·특수교육' ? '유치원·특수교사' : '교사'); else { S.log(s, '임용시험에 떨어졌다. 기간제 교사로 한 해를 보냈다.', 'work'); S.gain(s, 1500 * S.incomeIndex(s.year)); } }
+    else if (plan === '전문직') { if (U.chance(s, 0.5)) S.startJob(s, '전문직', '전문 자격을 얻었다.', s.edu.sub === '건축·토목' ? '건축사' : s.edu.sub === '경영·경제' ? U.pick(s, ['회계사', '세무사']) : U.pick(s, ['회계사', '변리사', '세무사', '감정평가사'])); else { S.log(s, '시험에 떨어졌다. 한 해를 더 준비했다.', 'work'); S.cost(s, 1500 * S.incomeIndex(s.year)); } }
   }
 
   function yearLove(s) {
@@ -625,9 +602,9 @@ window.KR = window.KR || {};
 
   function yearHealth(s) {
     const h = s.hs, a = s.age, st = s.stats;
-    if (!h.smoker && a >= 18 && a <= 24 && !h.quit) { const rate = yr(s.sex === 'M' ? 'smokeM' : 'smokeF', s.year); if (U.chance(s, rate / 6 * (s.focus === 'health' ? 0.4 : 1))) { h.smoker = true; S.log(s, '담배를 피우기 시작했다.', 'health'); } }
+    if (!h.smoker && !h.quit && a >= 18 && a <= 22 && !s.taken.smoke_choice && s.mil.status !== 'serving') pushDecision(s, 'smoke_choice');
     if (h.smoker) { h.smokeYears += 1; if (a === 40 || a === 55) pushDecision(s, 'quit_smoking'); }
-    if (!h.drinker && a >= 20 && a <= 30) { if (U.chance(s, (s.sex === 'M' ? D.health.heavyDrinkM : D.health.heavyDrinkF) / 10 * (s.work.status === 'employed' ? 1.3 : 1))) { h.drinker = true; S.log(s, '술자리가 잦아졌다. 주량이 늘었다.', 'health'); } }
+    if (!h.drinker && a >= 20 && a <= 26 && !s.taken.drink_choice && (s.work.status === 'employed' || s.work.status === 'self' || s.edu.stage === 'univ')) pushDecision(s, 'drink_choice');
     if (h.drinker && U.chance(s, 0.04)) { h.drinker = false; S.log(s, '술을 줄였다.', 'health'); }
     h.exercise = s.focus === 'health';
     const checkup = a >= 20 && a % 2 === 0 && s.year >= 1995 && (s.work.status === 'employed' || a >= 40);
@@ -878,7 +855,7 @@ window.KR = window.KR || {};
     const home = s.housing === 'own' ? '자가' : s.housing === 'jeonse' ? '전세' : s.housing === 'monthly' ? '월세' : s.housing === 'parents' ? '부모 집' : '요양원';
     return {
       name: s.name, sex: s.sex, region: r.short, regionFull: r.name, birthYear: s.birthYear, age: s.age, alive: s.alive, death: s.death,
-      degree: ['elem', 'mid', 'high', 'repeat'].includes(s.edu.stage) ? '재학 중' : s.edu.degree, univ: s.edu.univ ? s.edu.univ.kind : null, job, married: s.love.marriedAt != null, marriedAt: s.love.marriedAt, divorced: s.love.divorced, kids,
+      major: s.edu.major || null, sub: s.edu.sub || null, degree: ['elem', 'mid', 'high', 'repeat', 'admitted'].includes(s.edu.stage) ? '재학 중' : s.edu.degree, univ: s.edu.univ ? s.edu.univ.kind : null, job, married: s.love.marriedAt != null, marriedAt: s.love.marriedAt, divorced: s.love.divorced, kids,
       assets: S.netWorth(s), items: S.itemList(s), home, lifetimeIncome: s.money.lifetimeIncome,
       stats: { ...s.stats }, notes: s.notes, abroad: !!s.abroad, military: s.mil.kind || null, cancers: s.hs.cancers, smoker: s.hs.smoker,
       map: s.map.map(x => [x.st, x.h]), decile: s.parents.decile,

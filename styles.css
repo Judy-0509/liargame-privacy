@@ -169,6 +169,16 @@ input[type=number], select, textarea { width: 100%; background: var(--bg2); bord
 .ranking-table th { color: var(--muted); font-weight: 600; font-size: .78rem; border-top: 0; }
 .ranking-table td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ranking-table tr.me td { color: var(--accent); }
+.apply-list { display: grid; gap: 6px; }
+.apply-row { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; display: grid; gap: 4px; font-size: .86rem; }
+.apply-row.on { border-color: var(--accent); }
+.apply-row .nm small { display: block; color: var(--muted); font-size: .76rem; }
+.apply-row .ap { display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; }
+.apply-row .lab { color: var(--muted); font-size: .8rem; }
+.apply-row .lab b { color: var(--text); font-variant-numeric: tabular-nums; }
+.ctr { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.ctr button { padding: 0 8px; font-size: .9rem; line-height: 1.5; border-radius: 6px; }
+.ctr b { min-width: 1.2em; text-align: center; }
 .ranking-table .meta { color: var(--muted); font-size: .78rem; }
 .notes { max-height: 14vh; }
 

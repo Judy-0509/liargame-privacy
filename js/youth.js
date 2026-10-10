@@ -42,7 +42,7 @@ window.KR = window.KR || {};
       if (a >= 9 && a <= 12 && !s.flags.glasses && U.chance(s, 0.18)) { s.flags.glasses = true; log(s, '칠판이 흐려져 안경을 쓰기 시작했다.'); }
       if (a >= 9 && a <= 11 && y >= 2003 && st.know >= 66) push(s, 'gifted');
       if (a >= 10 && a <= 13 && y >= 1998 && y <= 2019 && dec(s) >= 8) push(s, 'early_abroad');
-      if (a >= 10 && a <= 12 && once(s, 'contest') && st.know >= 74 && U.chance(s, 0.5)) { if (U.chance(s, 0.45)) { log(s, '수학 경시대회에서 상을 받았다.'); S.bump(s, 'know', 3); S.bump(s, 'happy', 4); } else log(s, '경시대회에 나갔지만 상은 받지 못했다.'); }
+      if (a >= 10 && a <= 12 && once(s, 'contest') && st.know >= 74 && U.chance(s, 0.5)) { if (U.chance(s, 0.45)) { s.flags.contestWin = true; log(s, '수학 경시대회에서 상을 받았다.'); S.bump(s, 'know', 3); S.bump(s, 'happy', 4); } else log(s, '경시대회에 나갔지만 상은 받지 못했다.'); }
       if (a >= 8 && a <= 11 && once(s, 'bookking') && st.know >= 58 && U.chance(s, 0.3)) { log(s, '독서왕 상을 받았다. 도서관이 놀이터였다.'); S.bump(s, 'know', 2); }
       if (a >= 6 && a <= 14 && U.chance(s, 0.035)) { log(s, '이사로 전학했다. 새 교실이 낯설었다.'); S.bump(s, 'rel', -5); }
       if (a >= 10 && a <= 11 && y >= 2000 && once(s, 'pcbang') && U.chance(s, st.happy < 45 ? 0.45 : 0.25)) { log(s, y >= 2013 ? '스마트폰 게임에 빠졌다. 밤마다 화면이 밝았다.' : 'PC방에 드나들기 시작했다. 스타크래프트와 메이플이 전부였다.'); S.bump(s, 'know', -2); S.bump(s, 'happy', 2); }
@@ -54,7 +54,7 @@ window.KR = window.KR || {};
       if (a === 13 && y >= 2016 && U.chance(s, 0.6)) log(s, '자유학기제. 시험 대신 진로 수업을 들었다.');
       if (a >= 13 && a <= 16 && once(s, 'firstlove') && U.chance(s, 0.3)) { if (U.chance(s, 0.4)) { log(s, '짝사랑이 이루어졌다. 등굣길이 짧게 느껴졌다.'); S.bump(s, 'happy', 6); S.bump(s, 'rel', 2); } else { log(s, '고백했다가 차였다. 한동안 그 반 앞을 피해 다녔다.'); S.bump(s, 'happy', -4); } }
       if (a >= 12 && a <= 14 && e.tutoring && U.chance(s, 0.35)) { log(s, '학원 세 곳을 돌았다. 저녁은 편의점 삼각김밥.'); S.bump(s, 'health', -2); S.bump(s, 'know', 1); }
-      if (a >= 13 && a <= 14 && y >= 2009 && once(s, 'volunteer') && U.chance(s, 0.4)) { log(s, '봉사활동 시간을 채우러 복지관에 다녔다.'); S.bump(s, 'rel', 2); }
+      if (a >= 13 && a <= 14 && y >= 2009 && once(s, 'volunteer') && U.chance(s, 0.4)) { s.flags.volunteer = true; log(s, '봉사활동 시간을 채우러 복지관에 다녔다.'); S.bump(s, 'rel', 2); }
       if (a === 13 && st.know >= 78 && (y >= 1983)) push(s, 'sci_prep');
       if (a === 14) { if (st.know >= 80) { log(s, '전교 10등 안에 들었다.'); S.bump(s, 'happy', 4); } else if (st.know < 40) { log(s, '성적표를 가방 깊숙이 숨겼다.'); S.bump(s, 'happy', -3); } }
       if (a === 12 && y >= 2013 && once(s, 'phonedep') && U.chance(s, 0.2)) { log(s, '스마트폰을 손에서 놓지 못했다.'); S.bump(s, 'know', -2); }
@@ -65,20 +65,20 @@ window.KR = window.KR || {};
       if (a === 15 && y < 1995 && !e.track) e.track = U.chance(s, 0.5) ? '이과' : '문과';
       if (a === 15 && once(s, 'nightstudy')) { if (y >= 1980 && y <= 2012 && U.chance(s, 0.6)) log(s, '야간자율학습. 밤 10시 교문을 나설 때 별이 보였다.'); else if (y > 2012 && U.chance(s, 0.5)) log(s, '스터디카페 정기권을 끊었다.'); }
       if (a === 16) { if (st.know >= 85) { log(s, '모의고사 전 과목 1등급을 받았다.'); S.bump(s, 'happy', 4); } else if (st.know <= 42) { log(s, '모의고사 성적표를 보고 진로를 다시 생각했다.'); S.bump(s, 'happy', -3); } else if (U.chance(s, 0.5)) log(s, `모의고사 ${st.know >= 70 ? '2' : '3'}등급. 조금만 더 하면 될 것 같았다.`); }
-      if (a >= 16 && a <= 17 && y >= 2000 && once(s, 'firstjob') && U.chance(s, dec(s) <= 4 ? 0.35 : 0.15)) { log(s, '편의점 아르바이트를 시작했다. 첫 급여로 신발을 샀다.'); S.gain(s, 150 * idx(s)); S.bump(s, 'happy', 2); }
+      if (a === 16 && y >= 2000) push(s, 'parttime');
       if (a === 17 && U.chance(s, 0.65)) { log(s, U.pick(s, ['입시 스트레스로 밤잠을 설쳤다.', '수능 100일 전, 교실 뒤에 디데이가 걸렸다.', '수능날 아침, 후배들이 교문 앞에서 응원했다.'])); S.bump(s, 'health', -2); S.bump(s, 'happy', -3); }
       if (a === 17 && y >= 2008 && U.chance(s, 0.7)) log(s, '수시 원서 여섯 장을 썼다.');
       if (a >= 15 && a <= 16 && U.chance(s, st.happy < 30 ? 0.04 : 0.01) && once(s, 'ged')) { log(s, '학교를 그만두고 검정고시를 준비했다.'); S.bump(s, 'happy', 3); S.bump(s, 'know', -2); }
       if (a === 16 && U.chance(s, 0.4)) log(s, U.pick(s, ['학교 축제에서 무대에 올랐다.', '야자를 빼먹고 떡볶이를 먹었다.', '독서실에서 밤을 새웠다.', '친구와 진로 이야기를 하다 울었다.']));
     }
     if (e.stage === 'univ' && s.mil.status !== 'serving') {
-      const yr1 = e.univ && (e.left === (e.univ.kind === '전문대' ? 2 : e.univ.kind === '의약계열' ? 6 : 4) - 1);
+      const yr1 = e.univ && e.left === e.univ.years - 1;
       if (yr1 && once(s, 'club')) { if (U.chance(s, 0.12)) { log(s, '학생회에 들어갔다. 밤새 현수막을 만들었다.'); S.bump(s, 'rel', 6); S.bump(s, 'know', -1); } else if (U.chance(s, 0.5)) { log(s, '동아리 방에서 살다시피 했다.'); S.bump(s, 'rel', 4); } }
       if (a >= 19 && a <= 22 && !s.love.partner && !s.love.married && once(s, 'cc') && U.chance(s, 0.18)) { s.love.partner = { since: a }; s.love.since = 0; s.flags.partnerEver = true; log(s, '같은 과 동기와 사귀기 시작했다. 캠퍼스 커플.'); S.bump(s, 'happy', 6); }
       if (a >= 19 && a <= 22 && U.chance(s, 0.3)) { if (st.know >= 76) { log(s, '성적 장학금을 받았다.'); S.gain(s, 250 * idx(s)); S.bump(s, 'happy', 3); } else if (st.know < 42 && U.chance(s, 0.5)) { log(s, '학사경고를 받았다.'); S.bump(s, 'happy', -4); } }
       if (a >= 19 && a <= 22 && y >= 1990 && dec(s) >= 5 && e.left >= 1 && e.left <= 3) push(s, 'lang_study');
       if (a >= 19 && a <= 23 && e.left >= 1 && e.left <= 2 && (s.taken.lang_study || a >= 20)) push(s, 'spec');
-      if (e.univ && e.univ.kind === '의약계열' && e.left === 3 && U.chance(s, 0.8)) log(s, '본과에 올라갔다. 해부학 실습이 시작됐다.');
+      if (e.univ && e.univ.med && e.left === 3 && U.chance(s, 0.8)) log(s, '본과에 올라갔다. 해부학 실습이 시작됐다.');
       if (a >= 19 && a <= 21 && U.chance(s, 0.3)) log(s, U.pick(s, ['수강신청에 실패해 아침 수업만 남았다.', '팀플에서 혼자 발표를 떠맡았다.', '교수님 연구실에서 커피를 탔다.', '종강 후 친구들과 밤바다를 보러 갔다.']));
     }
     if (a >= 20 && a <= 26 && y >= 1989 && !s.flags.backpack && (s.money.assets >= 400 * idx(s) || dec(s) >= 5) && s.mil.status !== 'serving') push(s, 'backpack');

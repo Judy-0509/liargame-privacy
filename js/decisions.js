@@ -27,8 +27,8 @@ window.KR = window.KR || {};
 
   const capitalP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 64) / 7));
   const localP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 48) / 8));
-  const majorF = s => ({ '공학': 1.25, '상경': 1.05, '자연': 0.95, '인문사회': 0.8, '법·행정': 0.9, '사범': 0.7, '예체능': 0.6, '간호·보건': 0.8 }[s.edu.major] || 1);
-  const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t === 3 ? 1.4 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100 + (s.edu.spec || 0), 0.03, 0.75) * eduF * majorF(s); };
+  const majorF = s => { const m = D.majors[s.edu.major]; let f = m ? m.big : 1; if (s.edu.sub === '컴퓨터·소프트웨어' && s.year >= 2010) f *= 1.15; if (s.edu.sub === '전기·전자·반도체') f *= 1.1; if (s.edu.sub === '언론·미디어') f *= 0.8; return f; };
+  const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t >= 3 ? 1.4 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100 + (s.edu.spec || 0), 0.03, 0.75) * eduF * majorF(s); };
   const jobLabel = s => (D.jobs[s.work.type] || { label: '일터' }).label;
   const employed = s => (s.work.status === 'employed' || s.work.status === 'self') && !!s.work.type;
 
@@ -46,26 +46,83 @@ window.KR = window.KR || {};
       ],
     },
     {
-      id: 'univ_choice', when: s => s.age === 17 && s.edu.stage === 'high',
-      title: '수능이 끝났다. 어디로 갈까', text: s => `지식 ${Math.round(s.stats.know)}. ${s.edu.hs}. 이 해 고교 졸업자의 ${pct(U.interp(D.byYear.univRate, s.year))}가 대학에 갔다.`,
+      id: 'univ_apply', when: s => (s.age === 17 && s.edu.stage === 'high') || (s.edu.stage === 'repeat' && s.age === 17 + s.edu.repeat),
+      title: s => s.edu.stage === 'repeat' ? `${s.edu.repeat === 1 ? '재수' : '삼수'} 끝. 다시 원서를 쓴다` : '원서를 쓴다',
+      text: s => { const E = S.scorePct(s, false), g = S.naesinGrade(s); return `예상 수능 백분위 ${E} (상위 ${Math.max(0.1, 100 - E).toFixed(1)}%)${s.year >= 1997 ? `, 내신 ${g}등급. 수시 6장과 정시 3장. 수시에 붙으면 정시는 갈 수 없다.` : '. 전기·후기 세 곳에 지원할 수 있다.'} ${s.edu.hs}.`; },
       options: s => {
-        const era = U.interp(D.byYear.univRate, s.year);
-        const k = s.stats.know + S.hsBonus(s);
+        const e = s.edu; if (e.applyMajorYear !== s.year) { e.applyMajor = S.autoMajor(s); e.applyMajorYear = s.year; }
+        const major = e.applyMajor, era = U.interp(D.byYear.univRate, s.year), ps = S.presets(s, major);
+        const w = [0.25, 0.5, 0.25];
+        const out = ps.map((p, i) => ({ label: `${p.name} 지원 (${major} 계열)`, hint: `${S.planText(p)} · 한 곳 이상 합격 ${pct(S.planOdds(s, p).any)}`, auto: () => era * w[i] * (e.hs === '특성화고' ? 0.4 : 1), focus: 'study', apply: s => { s.edu.plan = p; } }));
+        out.push({ label: '직접 고르기', hint: '계열과 대학을 하나씩 정한다.', custom: 'apply', auto: () => 0, apply: () => { } });
+        out.push({ label: '수능 없이 취업', hint: e.hs === '특성화고' ? '배운 기술로 바로 일한다.' : '대학 없이 일을 시작한다.', auto: s => (1 - era) * 0.38 * (e.hs === '특성화고' ? 2.5 : 1) * (s.parents.decile <= 2 ? 1.4 : 1), focus: 'money', apply: s => { s.edu.plan = '취업'; } });
+        return out;
+      },
+      applyCustom: (s, plan) => { s.edu.plan = { name: '커스텀', major: plan.major, su: { ...plan.su }, jung: { ...plan.jung } }; },
+    },
+    {
+      id: 'enroll', when: s => s.edu.stage === 'admitted',
+      title: s => s.edu.admits && s.edu.admits.length ? '어디로 갈까' : '모두 떨어졌다. 이제 어떻게',
+      text: s => { const e = s.edu; return `수능 백분위 ${e.pct}${e.grade ? `, 내신 ${e.grade}등급` : ''}. ${e.major} 계열 지원.`; },
+      options: s => {
+        const e = s.edu, admits = e.admits || [];
+        const out = admits.map(id => { const t = S.tierById(id); return { label: `${t.name} 입학`, hint: `${t.major || e.major} 계열 · ${t.years}년 · 등록금 연 ${money((U.chance(s, 0) ? 0 : t.tuition) * idx(s))} 안팎${t.capital >= 0.8 ? ' · 서울' : t.id === 'national' ? ' · 지방' : ''}`, auto: () => 1 + t.rank * 2 + t.cut / 50, focus: 'study', apply: s => S.enroll(s, id, e.major) }; });
+        const best = admits.length ? S.tierById(admits[0]).rank : -1;
+        out.push({ label: e.repeat >= 1 ? '삼수' : '재수', hint: s => `1년 더. 학원비 ${money(1200 * idx(s))}. 수능 백분위 +4.`, hide: s.year < 1985 || e.repeat >= 2, auto: s => admits.length ? (best <= 1 && s.stats.know >= 62 && s.parents.decile >= 5 ? 0.35 : 0.04) : (s.parents.decile >= 4 ? 0.8 : 0.4), apply: s => { e.stage = 'repeat'; e.repeat += 1; e.plan = null; e.admits = null; S.cost(s, 1200 * idx(s)); S.log(s, e.repeat === 1 ? '재수를 택했다. 독서실 책상이 집이 됐다.' : '삼수. 주변의 눈길이 따가웠다.', 'edu'); S.bump(s, 'happy', -3); } });
+        out.push({ label: '추가모집 전문대', hint: '2년. 어디든 들어갈 수 있다.', hide: admits.includes('college') || s.year < 1979, auto: () => admits.length ? 0.02 : 0.5, apply: s => { S.enroll(s, 'college', e.major); } });
+        out.push({ label: '방송대·사이버대', hint: '일하면서 다닌다.', hide: admits.includes('cyber') || s.year < 1972, auto: () => admits.length ? 0.01 : 0.08, apply: s => { S.enroll(s, 'cyber', e.major); s.work.status = 'seeking'; } });
+        out.push({ label: '취업', hint: '대학 없이 일을 시작한다.', auto: () => admits.length ? 0.03 : 0.5, focus: 'money', apply: s => { e.stage = 'done'; e.plan = null; e.admits = null; s.work.status = 'seeking'; S.log(s, '대학 대신 일을 찾기로 했다.', 'edu'); } });
+        return out;
+      },
+    },
+    {
+      id: 'submajor', when: never, valid: s => s.edu.stage === 'univ' && !!D.majors[s.edu.major],
+      title: s => `${s.edu.major} 계열, 전공을 정한다`, text: '2학년. 세부 전공에 따라 길이 갈린다.',
+      options: s => {
+        const m = D.majors[s.edu.major];
+        const out = m.subs.map(x => ({ label: x[0], hint: x[1], auto: () => 1, apply: s => { s.edu.sub = x[0]; S.log(s, `${x[0]} 전공을 택했다.`, 'edu'); } }));
+        out.push({ label: '다른 계열로 전과', hint: '성공 50%. 1년이 더 걸릴 수 있다.', auto: () => 0.15, apply: s => { if (U.chance(s, 0.5)) { const others = Object.keys(D.majors).filter(k => k !== s.edu.major && k !== '의약'); s.edu.major = U.pick(s, others); s.edu.sub = null; s.edu.left += U.chance(s, 0.5) ? 1 : 0; S.log(s, `${s.edu.major} 계열로 전과했다.`, 'edu'); } else { S.log(s, '전과 신청이 거절됐다.', 'edu'); s.edu.sub = m.subs[0][0]; } } });
+        return out;
+      },
+    },
+    {
+      id: 'tutoring_choice', when: never, valid: s => s.edu.stage === 'mid' || s.edu.stage === 'high',
+      title: s => s.edu.tutoring ? '학원을 계속 다닐까' : '학원에 다닐까', text: s => { const d = s.parents.decile; const c = d <= 3 ? 30 : d <= 7 ? 55 : 95; return `월 ${money(c * idx(s))} (소득 ${d}분위 가정 기준). 지식 ${Math.round(s.stats.know)}.`; },
+      options: s => {
+        const d = s.parents.decile, p = d <= 3 ? D.edu.tutoring[0] : d <= 7 ? D.edu.tutoring[1] : D.edu.tutoring[2];
         return [
-          { label: '의·치·한·약대 지원', hint: s => `합격 가능성 ${pct(1 / (1 + Math.exp(-(k - 93) / 3.5)))}. 떨어지면 다른 대학으로.`, hide: k < 84 || s.edu.track === '문과', auto: s => k >= 90 ? 1.2 : 0.3, focus: 'study', apply: s => { s.edu.plan = '의약'; } },
-          { label: '최상위권 대학 지원 (SKY·KAIST 등)', hint: s => `합격 가능성 ${pct(1 / (1 + Math.exp(-(k - 93) / 4)))}. 떨어지면 수도권 4년제로.`, hide: k < 80, auto: s => era * (k >= 88 ? 1.5 : 0.5), focus: 'study', apply: s => { s.edu.plan = '최상위권'; } },
-          { label: '수도권 4년제에 지원', hint: s => `합격 가능성 ${pct(capitalP(s))}. 떨어지면 지방 4년제나 전문대로.`, auto: s => era * capitalP(s) * 1.4, focus: 'study', apply: s => { s.edu.plan = '수도권4년제'; } },
-          { label: '예체능 실기 입시', hint: '실기와 레슨. 예술 계열로 간다.', hide: s.edu.hs !== '예술고', auto: () => 3, apply: s => { s.edu.plan = '예체능'; } },
-          { label: '4년제 대학에 지원 (지방 포함)', hint: s => `합격 가능성 ${pct(localP(s))}.`, auto: s => era * localP(s), apply: s => { s.edu.plan = '4년제'; } },
-          { label: '전문대', hint: '2년, 빨리 일터로.', auto: () => era * 0.35, apply: s => { s.edu.plan = '전문대'; } },
-          { label: '바로 취업', hint: s.edu.hs === '특성화고' ? '배운 기술로 바로 일한다.' : '대학 없이 일을 시작한다.', auto: s => (1 - era) * 1.1 * (s.edu.hs === '특성화고' ? 3 : 1) * (s.parents.decile <= 2 ? 1.5 : 1), focus: 'money', apply: s => { s.edu.plan = '취업'; } },
-          { label: s.edu.repeat >= 1 ? '삼수' : '재수', hint: '1년 더. 학원비가 든다.', hide: s.edu.repeat >= 2 || s.year < 1985, auto: s => s.stats.know >= 58 && s.stats.know < 78 && s.parents.decile >= 5 ? (s.edu.repeat ? 0.08 : 0.3) : 0.05, apply: s => { s.edu.plan = '재수'; } },
+          { label: '다닌다', hint: '지식이 더 오른다. 저녁이 사라진다.', auto: () => p, focus: 'study', apply: s => { s.edu.tutoring = true; S.log(s, s.taken.tutoring_choice > 1 ? '학원을 계속 다녔다.' : '학원에 다니기 시작했다.', 'edu'); } },
+          { label: '다니지 않는다', hint: '혼자 공부한다. 시간이 생긴다.', auto: () => 1 - p, focus: 'rest', apply: s => { s.edu.tutoring = false; S.bump(s, 'happy', 1); S.log(s, '학원 없이 혼자 공부하기로 했다.', 'edu'); } },
         ];
       },
     },
     {
+      id: 'smoke_choice', when: never, max: 1,
+      title: '담배를 배울까', text: s => `또래 ${s.sex === 'M' ? '남성' : '여성'}의 ${Math.round(U.interp(D.byYear[s.sex === 'M' ? 'smokeM' : 'smokeF'], s.year) * 100)}%가 피운다.`,
+      options: s => { const r = U.interp(D.byYear[s.sex === 'M' ? 'smokeM' : 'smokeF'], s.year); return [
+        { label: '피운다', hint: '건강이 깎이고 암 위험이 오른다.', auto: () => r, apply: s => { s.hs.smoker = true; S.log(s, '담배를 피우기 시작했다.', 'health'); } },
+        { label: '피우지 않는다', hint: '', auto: () => 1 - r, focus: 'health', apply: () => { } },
+      ]; },
+    },
+    {
+      id: 'drink_choice', when: never, max: 1,
+      title: '술자리', text: '회식과 모임이 잦다. 어디까지 마실까.',
+      options: s => { const r = s.sex === 'M' ? 0.25 : 0.1; return [
+        { label: '술자리를 즐긴다', hint: '관계가 넓어지고 간이 상한다.', auto: () => r, focus: 'rel', apply: s => { s.hs.drinker = true; S.bump(s, 'rel', 2); S.log(s, '술자리가 잦아졌다. 주량이 늘었다.', 'health'); } },
+        { label: '적당히 마신다', hint: '', auto: () => 1 - r, focus: 'health', apply: () => { } },
+      ]; },
+    },
+    {
+      id: 'parttime', when: never, max: 1, valid: s => s.edu.stage === 'high',
+      title: '아르바이트를 할까', text: '편의점 야간. 시급은 최저임금.',
+      options: s => [
+        { label: '한다', hint: s => `${money(150 * idx(s))}. 지식 −1, 행복 +2.`, auto: () => s.parents.decile <= 4 ? 0.35 : 0.15, focus: 'money', apply: s => { S.gain(s, 150 * idx(s)); S.bump(s, 'happy', 2); S.bump(s, 'know', -1); S.log(s, '편의점 아르바이트를 시작했다. 첫 급여로 신발을 샀다.', 'youth'); } },
+        { label: '안 한다', hint: '공부에 집중한다.', auto: () => 0.7, apply: () => { } },
+      ],
+    },
+    {
       id: 'tuition', when: never, valid: s => !!s.edu.univ,
-      title: '학비는 어떻게 마련할까', text: s => `등록금은 한 해 ${money((s.edu.univ.public ? D.edu.tuitionPublic : D.edu.tuitionPrivate) * idx(s))}. 집은 소득 ${s.parents.decile}분위.`,
+      title: '학비는 어떻게 마련할까', text: s => `등록금은 한 해 ${money(s.edu.univ.tuition * idx(s))}. 집은 소득 ${s.parents.decile}분위.`,
       options: s => [
         { label: '부모가 대 준다', hint: '집안 살림이 빠듯해진다.', hide: s.parents.decile <= 2, auto: s => 0.3 + s.parents.decile * 0.1, apply: s => { s.edu.tuition = '부모'; S.bump(s, 'rel', 2); } },
         { label: '학자금 대출', hint: '졸업 후 갚는다.', auto: () => 0.35, apply: s => { s.edu.tuition = '대출'; S.log(s, '학자금 대출을 받았다.', 'money'); } },
@@ -97,8 +154,9 @@ window.KR = window.KR || {};
         { label: '대기업·공기업 공채', hint: s => `합격 가능성 ${pct(bigP(s))}. 떨어지면 1년이 간다.`, auto: s => bigP(s) * 2.5, focus: 'money', apply: s => { s.work.plan = '대기업'; } },
         { label: '중소·중견기업', hint: '취업 가능성 80%. 월급은 대기업의 절반 남짓.', auto: () => 0.9, apply: s => { s.work.plan = '중소'; } },
         { label: '공무원 시험 준비', hint: '매년 약 9%가 합격한다. 몇 년이 걸릴지 모른다.', hide: s.age > 33 || s.year < 1975, auto: s => s.stats.know > 55 ? 0.25 : 0.12, focus: 'study', apply: s => { s.work.plan = '공무원'; } },
-        { label: '교사 임용 시험', hint: '해마다 약 35%가 합격한다.', hide: s.edu.major !== '사범' || s.age > 35, auto: () => 1.2, focus: 'study', apply: s => { s.work.plan = '임용'; } },
-        { label: '전문직 시험 (회계사·변리사·세무사 등)', hint: '합격 가능성 50%. 비용이 크다.', hide: s.stats.know < 84 || !(s.edu.degree === '대졸' || s.edu.degree === '대학원졸') || !(s.edu.univ && s.edu.univ.tier >= 2), auto: () => 0.35, focus: 'study', apply: s => { s.work.plan = '전문직'; } },
+        { label: '교사 임용 시험', hint: s => `해마다 약 ${s.edu.sub === '초등교육' ? 60 : s.edu.sub === '유아·특수교육' ? 45 : 25}%가 합격한다.`, hide: s.edu.major !== '교육' || s.age > 35, auto: () => 1.5, focus: 'study', apply: s => { s.work.plan = '임용'; s.work.examP = s.edu.sub === '초등교육' ? 0.6 : s.edu.sub === '유아·특수교육' ? 0.45 : 0.25; } },
+        { label: '전문직 시험 (회계사·변리사·세무사·건축사 등)', hint: '합격 가능성 50%. 비용이 크다.', hide: !(s.edu.degree === '대졸' || s.edu.degree === '대학원졸') || !((s.stats.know >= 84 && s.edu.univ && s.edu.univ.tier >= 2) || (s.edu.sub === '경영·경제' && s.stats.know >= 78) || (s.edu.sub === '건축·토목' && s.stats.know >= 70)), auto: () => 0.35, focus: 'study', apply: s => { s.work.plan = '전문직'; } },
+        { label: '올해는 쉰다', hint: '통계청은 이것을 쉬었음이라 부른다. 마음은 쉬고 이력서의 공백은 늘어난다.', hide: s.age > 34, auto: s => s.work.seeking >= 2 || s.stats.happy < 40 ? 0.2 : 0.06, focus: 'rest', apply: s => { s.work.status = 'rest'; S.bump(s, 'happy', 5); S.bump(s, 'health', 2); S.log(s, '올해는 쉬기로 했다. 구직도 학원도 없이.', 'work'); } },
         { label: '창업·자영업', hint: s => `자본 ${money(5000 * idx(s))}. 5년 생존율 34%.`, hide: s.age < 22, auto: s => s.money.assets > 5000 * idx(s) ? 0.25 : 0.08, focus: 'money', apply: s => { s.work.plan = '창업'; } },
         { label: '프리랜서·플랫폼 노동', hint: '바로 시작. 소득은 불안정하다.', hide: s.year < 2005, auto: () => 0.18, focus: 'rest', apply: s => { s.work.plan = '프리랜서'; } },
         { label: '해외로 떠나기', hint: '소득은 높지만 가족과 멀어진다.', hide: s.stats.know < 60 || s.year < 1990 || s.abroad || s.love.married, auto: () => 0.06, apply: s => { s.work.plan = '해외'; } },

@@ -15,7 +15,9 @@ window.KR = window.KR || {};
     if (s.mil.status === 'serving') return s.mil.kind === '현역' ? '군 복무 중' : '사회복무 중';
     if (s.edu.stage === 'univ') return `${s.edu.univ.kind} 재학`;
     if (s.edu.stage === 'grad') return '대학원 재학';
-    if (s.edu.stage === 'repeat') return '재수 중';
+    if (s.edu.stage === 'repeat') return s.edu.repeat >= 2 ? '삼수 중' : '재수 중';
+    if (s.edu.stage === 'admitted') return '대학 입학 준비';
+    if (w.status === 'rest') return '쉬는 중';
     if (w.status === 'employed' || w.status === 'self') return w.title || (D.jobs[w.type] ? D.jobs[w.type].label : '일');
     if (w.status === 'seeking') return w.exam ? '공무원 시험 준비' : '구직 중';
     if (w.status === 'unemployed') return '실직';
@@ -130,7 +132,7 @@ window.KR = window.KR || {};
     else if (s.love.widowed) h += grp('배우자', '세상을 떠남');
     else if (s.love.divorced) h += grp('결혼', `이혼 ${s.love.divorced}회`);
     if (s.kids.length) h += grp('자녀', s.kids.map(k => `${esc(k.n)}(${k.alive ? `${s.year - k.by}세${k.married ? ' · 결혼' : ''}${k.custody === 'ex' ? ' · 따로 산다' : ''}` : '세상을 떠남'})`).join(', '));
-    h += grp('학력', `${s.edu.degree}${s.edu.univ ? ` · ${s.edu.univ.kind}` : ''}${s.edu.major ? ` · ${s.edu.major}` : ''}${s.edu.hs ? ` · ${s.edu.hs}` : ''}${s.edu.track ? ` · ${s.edu.track}` : ''}${s.edu.gifted ? ' · 영재원' : ''}`);
+    h += grp('학력', `${s.edu.degree}${s.edu.univ ? ` · ${s.edu.univ.kind}${s.edu.univ.public ? '(국립)' : ''}` : ''}${s.edu.major ? ` · ${s.edu.major} 계열` : ''}${s.edu.sub ? ` · ${s.edu.sub}` : ''}${s.edu.hs ? ` · ${s.edu.hs}` : ''}${s.edu.track ? ` · ${s.edu.track}` : ''}${s.edu.gifted ? ' · 영재원' : ''}${s.edu.pct ? ` · 수능 백분위 ${s.edu.pct}` : ''}`);
     if (s.mil.status !== 'na') h += grp('병역', s.mil.kind ? `${s.mil.kind}${s.mil.status === 'done' ? ' 복무 마침' : ' 복무 중'}` : s.mil.status === 'exempt' ? '면제' : '아직');
     h += grp('일', `${UI.workLabel(s)}${s.work.pay && (s.work.status === 'employed' || s.work.status === 'self') ? ` · 연봉 ${U.fmtMan(s.work.pay)}` : ''}${s.work.mainType && s.work.status !== 'employed' ? ` · 주된 일자리 ${D.jobs[s.work.mainType].label}` : ''}`);
     const m = s.money;
@@ -231,7 +233,7 @@ window.KR = window.KR || {};
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v0.6</b> — 대입 개편: 수능 백분위·내신 등급 모형, 수시 6장+정시 3장(상향·적정·안정 프리셋과 직접 고르기), 묶음 이름 대학 13분류(국립·사립·소재지·등록금), 7대 계열 선택과 2학년 중계열 결정, 전과. 쉬었음·흡연·음주·학원·아르바이트를 무작위가 아니라 내가 고르는 결정으로 변경.</p><p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
   UI.fmtMetric = (k, v) => k === 'wealth' || k === 'income' ? U.fmtMan(v) : k === 'age' ? `${v}세` : k === 'score' ? `${v}점` : `${Math.round(v)}`;
@@ -275,6 +277,18 @@ window.KR = window.KR || {};
     else if (!data.rows.length) body = `<p class="help">${data.day}에는 아직 기록이 없습니다. 첫 번째가 되어 보세요.</p>`;
     else body = `<table class="ranking-table"><tr><th>#</th><th>삶</th><th style="text-align:right">${S.RANK_LABEL[key]}</th><th style="text-align:right">점수</th></tr>${data.rows.map(r => `<tr class="${myIds.includes(r.id) ? 'me' : ''}"><td>${r.rank}</td><td>${r.nick ? `<b>${esc(r.nick)}</b> ` : ''}${esc(r.name)} <span class="meta">${r.birthYear}년생 · ${esc(r.region)} · ${r.sex === 'M' ? '남' : '여'} · ${r.deathAge}세</span></td><td class="v">${UI.fmtMetric(key, r.value)}</td><td class="v meta">${r.score}점</td></tr>`).join('')}</table>`;
     return `<h2>오늘의 순위</h2><p class="text">${data ? `${data.day} 플레이한 ${data.n}명.` : ''} 서버에 올라간 모든 사람의 기록으로, 내 기록은 색으로 표시됩니다.</p><div class="actions" style="margin:0 0 10px;flex-wrap:wrap">${daySel}${sel}</div>${body}`;
+  };
+  UI.applyHTML = (s, plan) => {
+    const E = S.scorePct(s, false), SP = S.susiPct(s), g = S.naesinGrade(s), odds = S.planOdds(s, plan), susi = s.year >= 1997;
+    const tiers = S.tiersFor(s, plan.major);
+    const cnt = o => Object.values(o || {}).reduce((a, x) => a + x, 0);
+    const majorSel = `<select id="ap-major" style="width:auto;padding:4px 8px">${Object.keys(D.majors).map(m => `<option value="${m}" ${m === plan.major ? 'selected' : ''}>${m}</option>`).join('')}</select>`;
+    const rows = tiers.map(t => { const ps = S.appProb(s, t, 'su', SP), pj = S.appProb(s, t, 'jung', E); const ns = plan.su[t.id] || 0, nj = plan.jung[t.id] || 0; const ctr = (k, n) => `<span class="ctr"><button data-inc="${k}|${t.id}|-1" ${n ? '' : 'disabled'}>−</button><b>${n}</b><button data-inc="${k}|${t.id}|1">+</button></span>`; return `<div class="apply-row ${ns || nj ? 'on' : ''}"><div class="nm"><b>${esc(t.name)}</b><small class="meta">컷 ${t.cut} · ${t.years}년 · 등록금 ${U.fmtMan(Math.round(t.tuition * S.incomeIndex(s.year)))}${t.id === 'national' ? ' · 지방' : t.capital >= 0.8 ? ' · 서울' : ''}</small></div><div class="ap">${susi ? `<span class="lab">수시 <b>${Math.round(ps * 100)}%</b></span>${ctr('su', ns)}` : ''}<span class="lab">정시 <b>${Math.round(pj * 100)}%</b></span>${ctr('jung', nj)}</div></div>`; }).join('');
+    return `<h2>원서 쓰기</h2><p class="text">예상 수능 백분위 <b>${E}</b> (상위 ${Math.max(0.1, 100 - E).toFixed(1)}%)${susi ? `, 내신 <b>${g}등급</b>. 수시 6장 + 정시 3장. 수시에 붙으면 정시는 갈 수 없습니다.` : '. 세 곳에 지원할 수 있습니다.'}</p>
+      <div class="actions" style="margin:0 0 8px;flex-wrap:wrap">계열 ${majorSel}<span style="flex:1"></span><button class="small" data-preset="0">상향</button><button class="small" data-preset="1">적정</button><button class="small" data-preset="2">안정</button></div>
+      <div class="apply-list">${rows}</div>
+      <p class="help" style="margin-top:8px">${susi ? `수시 ${cnt(plan.su)}/6 · ` : ''}정시 ${cnt(plan.jung)}/3 · 한 곳 이상 합격 확률 ${susi ? `수시 ${Math.round(odds.su * 100)}% · ` : ''}정시 ${Math.round(odds.jung * 100)}% · 전체 <b>${Math.round(odds.any * 100)}%</b></p>
+      <div class="actions"><button class="primary" id="ap-submit">원서 접수</button><button class="ghost" id="ap-back">돌아가기</button></div>`;
   };
   UI.deathSummary = (s, rec) => {
     const sm = S.summary(s), r = D.regions[s.region];

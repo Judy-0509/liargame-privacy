@@ -145,11 +145,25 @@
   function showDecision(d) {
     clearTimers();
     const body = UI.modal(`<p class="kicker">결정 · ${A.s.age}세 · ${A.s.year}년</p><h2>${UI.esc(d.title)}</h2><p class="text">${UI.esc(d.text || '')}</p><div class="options">${d.options.map((o, i) => `<button data-i="${i}"><b>${UI.esc(o.label)}</b>${o.hint ? `<small>${UI.esc(o.hint)}</small>` : ''}</button>`).join('')}</div><p class="help" style="margin-top:12px"><button class="small ghost" id="dec-auto">이번엔 자동으로</button></p>`, { noClose: true });
-    const choose = i => { S.resolve(A.s, d.id, i); UI.closeModal(); UI.renderStats(A.s); UI.renderAssets(A.s); processDecisions(); };
+    const choose = i => { if (d.options[i] && d.options[i].custom === 'apply') { UI.closeModal(); return openApply(d); } S.resolve(A.s, d.id, i); UI.closeModal(); UI.renderStats(A.s); UI.renderAssets(A.s); processDecisions(); };
     body.querySelectorAll('.options button').forEach(b => b.onclick = () => choose(+b.dataset.i));
     body.querySelector('#dec-auto').onclick = () => { S.autoChoose(A.s, d.id); UI.closeModal(); processDecisions(); };
   }
 
+  function openApply(d) {
+    const s = A.s;
+    let plan = A.applyDraft && A.applyDraft.year === s.year ? A.applyDraft.plan : null;
+    if (!plan) { const major = s.edu.applyMajor || S.autoMajor(s); const p = S.presets(s, major)[1]; plan = { major, su: { ...p.su }, jung: { ...p.jung } }; }
+    const render = () => {
+      const body = UI.modal(UI.applyHTML(s, plan), { noClose: true });
+      body.querySelector('#ap-major').onchange = e => { plan.major = e.target.value; const ids = new Set(S.tiersFor(s, plan.major).map(t => t.id)); for (const k of ['su', 'jung']) for (const id of Object.keys(plan[k])) if (!ids.has(id)) delete plan[k][id]; render(); };
+      body.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => { const p = S.presets(s, plan.major)[+b.dataset.preset]; plan.su = { ...p.su }; plan.jung = { ...p.jung }; render(); });
+      body.querySelectorAll('[data-inc]').forEach(b => b.onclick = () => { const [k, id, d] = b.dataset.inc.split('|'); const max = k === 'su' ? 6 : 3; const tot = Object.values(plan[k]).reduce((a, x) => a + x, 0); const nv = (plan[k][id] || 0) + (+d); if (nv < 0) return; if (+d > 0 && tot >= max) { UI.toast(`${k === 'su' ? '수시는 6장' : '정시는 3장'}까지입니다.`); return; } if (nv) plan[k][id] = nv; else delete plan[k][id]; render(); });
+      body.querySelector('#ap-submit').onclick = () => { if (!Object.keys(plan.su).length && !Object.keys(plan.jung).length) { UI.toast('원서를 한 장 이상 넣어 주세요.'); return; } S.resolveCustom(s, d.id, plan); A.applyDraft = null; UI.closeModal(); save(); processDecisions(); };
+      body.querySelector('#ap-back').onclick = () => { A.applyDraft = { year: s.year, plan }; UI.closeModal(); const dd = S.decision(s, d.id); if (dd) showDecision(dd); else processDecisions(); };
+    };
+    render();
+  }
   function onDeath() {
     const s = A.s; clearTimers(); A.running = false;
     if (!(A.bench && A.benchYear === s.birthYear) && !loadBench(s.birthYear)) { UI.toast('같은 해에 태어난 500명의 삶을 계산하는 중…'); setTimeout(finishDeath, 80); } else finishDeath();
