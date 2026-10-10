@@ -28,14 +28,14 @@ window.KR = window.KR || {};
   const capitalP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 64) / 7));
   const localP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 48) / 8));
   const majorF = s => { const m = D.majors[s.edu.major], m2 = D.majors[s.edu.major2]; let f = Math.max(m ? m.big : 1, m2 ? m2.big : 0); if (s.edu.sub === '컴퓨터·소프트웨어' && s.year >= 2010) f *= 1.15; if (s.edu.sub === '전기·전자·반도체') f *= 1.1; if (s.edu.sub === '언론·미디어') f *= 0.8; return f; };
-  const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t >= 3 ? 1.4 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100 + (s.edu.spec || 0), 0.03, 0.75) * eduF * majorF(s); };
+  const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t >= 3 ? 1.4 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100 + (s.edu.spec || 0) + U.clamp((s.stats.rel - 50) / 500, -0.05, 0.1), 0.03, 0.75) * eduF * majorF(s); };
   const jobLabel = s => (D.jobs[s.work.type] || { label: '일터' }).label;
   const employed = s => (s.work.status === 'employed' || s.work.status === 'self') && !!s.work.type;
 
   KR.DECISIONS = [
     {
       id: 'hs_choice', when: s => s.age === 14 && s.edu.stage === 'mid' && !s.edu.hs,
-      title: '어느 고등학교로 갈까', text: s => `중학교 3학년. 지식 ${Math.round(s.stats.know)}. 집은 소득 ${s.parents.decile}분위.`,
+      title: '어느 고등학교로 갈까', text: s => `중학교 3학년. 스펙 ${Math.round(s.stats.know)}. 집은 소득 ${s.parents.decile}분위.`,
       options: s => [
         { label: '일반고', hint: '대학 진학을 준비한다. 가장 많은 길.', auto: () => 0.7, apply: s => { s.edu.hs = '일반고'; } },
         { label: s.year >= 2010 ? '특성화고·마이스터고' : s.year >= 1998 ? '실업계 고교' : '실업계·상고·공고', hint: '기술을 배워 졸업 후 바로 일한다.', auto: s => s.stats.know < 50 ? 0.3 : 0.1, focus: 'money', apply: s => { s.edu.hs = '특성화고'; S.bump(s, 'know', -3); } },
@@ -88,11 +88,11 @@ window.KR = window.KR || {};
     },
     {
       id: 'tutoring_choice', when: never, valid: s => s.edu.stage === 'mid' || s.edu.stage === 'high',
-      title: s => s.edu.tutoring ? '학원을 계속 다닐까' : '학원에 다닐까', text: s => { const d = s.parents.decile; const c = d <= 3 ? 30 : d <= 7 ? 55 : 95; return `월 ${money(c * idx(s))} (소득 ${d}분위 가정 기준). 지식 ${Math.round(s.stats.know)}.`; },
+      title: s => s.edu.tutoring ? '학원을 계속 다닐까' : '학원에 다닐까', text: s => { const d = s.parents.decile; const c = d <= 3 ? 30 : d <= 7 ? 55 : 95; return `월 ${money(c * idx(s))} (소득 ${d}분위 가정 기준). 스펙 ${Math.round(s.stats.know)}.`; },
       options: s => {
         const d = s.parents.decile, p = d <= 3 ? D.edu.tutoring[0] : d <= 7 ? D.edu.tutoring[1] : D.edu.tutoring[2];
         return [
-          { label: '다닌다', hint: '지식이 더 오른다. 저녁이 사라진다.', auto: () => p, focus: 'study', apply: s => { s.edu.tutoring = true; S.log(s, s.taken.tutoring_choice > 1 ? '학원을 계속 다녔다.' : '학원에 다니기 시작했다.', 'edu'); } },
+          { label: '다닌다', hint: '스펙이 더 오른다. 저녁이 사라진다.', auto: () => p, focus: 'study', apply: s => { s.edu.tutoring = true; S.log(s, s.taken.tutoring_choice > 1 ? '학원을 계속 다녔다.' : '학원에 다니기 시작했다.', 'edu'); } },
           { label: '다니지 않는다', hint: '혼자 공부한다. 시간이 생긴다.', auto: () => 1 - p, focus: 'rest', apply: s => { s.edu.tutoring = false; S.bump(s, 'happy', 1); S.log(s, '학원 없이 혼자 공부하기로 했다.', 'edu'); } },
         ];
       },
@@ -101,7 +101,7 @@ window.KR = window.KR || {};
       id: 'smoke_choice', when: never, max: 1,
       title: '담배를 배울까', text: s => `또래 ${s.sex === 'M' ? '남성' : '여성'}의 ${Math.round(U.interp(D.byYear[s.sex === 'M' ? 'smokeM' : 'smokeF'], s.year) * 100)}%가 피운다.`,
       options: s => { const r = U.interp(D.byYear[s.sex === 'M' ? 'smokeM' : 'smokeF'], s.year); return [
-        { label: '피운다', hint: '건강이 깎이고 암 위험이 오른다.', auto: () => r, apply: s => { s.hs.smoker = true; S.log(s, '담배를 피우기 시작했다.', 'health'); } },
+        { label: '피운다', hint: '체력이 깎이고 암 위험이 오른다.', auto: () => r, apply: s => { s.hs.smoker = true; S.log(s, '담배를 피우기 시작했다.', 'health'); } },
         { label: '피우지 않는다', hint: '', auto: () => 1 - r, focus: 'health', apply: () => { } },
       ]; },
     },
@@ -109,7 +109,7 @@ window.KR = window.KR || {};
       id: 'drink_choice', when: never, max: 1,
       title: '술자리', text: '회식과 모임이 잦다. 어디까지 마실까.',
       options: s => { const r = s.sex === 'M' ? 0.25 : 0.1; return [
-        { label: '술자리를 즐긴다', hint: '관계가 넓어지고 간이 상한다.', auto: () => r, focus: 'rel', apply: s => { s.hs.drinker = true; S.bump(s, 'rel', 2); S.log(s, '술자리가 잦아졌다. 주량이 늘었다.', 'health'); } },
+        { label: '술자리를 즐긴다', hint: '인맥이 넓어지고 간이 상한다.', auto: () => r, focus: 'rel', apply: s => { s.hs.drinker = true; S.bump(s, 'rel', 2); S.log(s, '술자리가 잦아졌다. 주량이 늘었다.', 'health'); } },
         { label: '적당히 마신다', hint: '', auto: () => 1 - r, focus: 'health', apply: () => { } },
       ]; },
     },
@@ -117,7 +117,7 @@ window.KR = window.KR || {};
       id: 'parttime', when: never, max: 1, valid: s => s.edu.stage === 'high',
       title: '아르바이트를 할까', text: '편의점 야간. 시급은 최저임금.',
       options: s => [
-        { label: '한다', hint: s => `${money(150 * idx(s))}. 지식 −1, 행복 +2.`, auto: () => s.parents.decile <= 4 ? 0.35 : 0.15, focus: 'money', apply: s => { S.gain(s, 150 * idx(s)); S.bump(s, 'happy', 2); S.bump(s, 'know', -1); S.log(s, '편의점 아르바이트를 시작했다. 첫 급여로 신발을 샀다.', 'youth'); } },
+        { label: '한다', hint: s => `${money(150 * idx(s))}. 스펙 −1, 멘탈 +2.`, auto: () => s.parents.decile <= 4 ? 0.35 : 0.15, focus: 'money', apply: s => { S.gain(s, 150 * idx(s)); S.bump(s, 'happy', 2); S.bump(s, 'know', -1); S.log(s, '편의점 아르바이트를 시작했다. 첫 급여로 신발을 샀다.', 'youth'); } },
         { label: '안 한다', hint: '공부에 집중한다.', auto: () => 0.7, apply: () => { } },
       ],
     },
@@ -144,13 +144,13 @@ window.KR = window.KR || {};
       id: 'grad_school', when: never,
       title: '대학원에 갈까', text: '공부를 더 하면 길이 넓어지지만, 시작이 늦어진다.',
       options: s => [
-        { label: '대학원 진학 (2년)', hint: '지식이 오르고 초봉이 높아진다.', auto: s => (s.parents.decile >= 6 ? 0.14 : 0.06) * (s.flags.ra ? 2.5 : 1), focus: 'study', apply: s => { s.edu.stage = 'grad'; s.edu.left = 2; s.work.status = 'student'; S.log(s, '대학원에 들어갔다.', 'edu'); S.cost(s, 1200 * idx(s)); } },
+        { label: '대학원 진학 (2년)', hint: '스펙이 오르고 초봉이 높아진다.', auto: s => (s.parents.decile >= 6 ? 0.14 : 0.06) * (s.flags.ra ? 2.5 : 1), focus: 'study', apply: s => { s.edu.stage = 'grad'; s.edu.left = 2; s.work.status = 'student'; S.log(s, '대학원에 들어갔다.', 'edu'); S.cost(s, 1200 * idx(s)); } },
         { label: '바로 취업', hint: '일을 시작한다.', auto: () => 0.7, apply: () => { } },
       ],
     },
     {
       id: 'job_search', when: s => s.work.status === 'seeking' && !s.work.exam && !s.work.plan && s.age >= 17 && (s.edu.stage === 'done' || s.edu.stage === 'none') && s.mil.status !== 'serving' && !s.flags.noSchool,
-      title: s => s.work.seeking === 0 ? '어디에 지원할까' : `${s.work.seeking}년째 구직 중. 이번엔 어디로`, text: s => `${s.edu.degree}${s.edu.univ ? ' (' + s.edu.univ.kind + ')' : ''}. 지식 ${Math.round(s.stats.know)}. 자산 ${money(s.money.assets)}.`,
+      title: s => s.work.seeking === 0 ? '어디에 지원할까' : `${s.work.seeking}년째 구직 중. 이번엔 어디로`, text: s => `${s.edu.degree}${s.edu.univ ? ' (' + s.edu.univ.kind + ')' : ''}. 스펙 ${Math.round(s.stats.know)}. 자산 ${money(s.money.assets)}.`,
       options: s => [
         { label: '대기업·공기업 공채', hint: s => `합격 가능성 ${pct(bigP(s))}. 떨어지면 1년이 간다.`, auto: s => bigP(s) * 2.5, focus: 'money', apply: s => { s.work.plan = '대기업'; } },
         { label: '중소·중견기업', hint: '취업 가능성 80%. 월급은 대기업의 절반 남짓.', auto: () => 0.9, apply: s => { s.work.plan = '중소'; } },
@@ -168,7 +168,7 @@ window.KR = window.KR || {};
       title: '이직 제안이 왔다', text: s => `${jobLabel(s)}에서 ${s.work.years}년. 연봉 ${money(s.work.pay)}.`,
       options: s => {
         const target = s.work.type === '중견' ? '대기업' : (s.work.type === '중소' || s.work.type === '비정규' || s.work.type === '프리랜서') ? '중견' : s.work.type;
-        const p = U.clamp(0.15 + (s.stats.know - 60) / 200, 0.06, 0.5);
+        const p = U.clamp(0.15 + (s.stats.know - 60) / 200 + (s.stats.rel - 50) / 400, 0.06, 0.55);
         return [
           { label: `${D.jobs[target].label}으로 이직 도전`, hint: `성공 가능성 ${pct(p)}. 실패해도 자리는 남는다.`, auto: () => p, focus: 'money', apply: s => { if (U.chance(s, p)) { const yrs = s.work.years; S.startJob(s, target, `${D.jobs[target].label}으로 이직했다.`); s.work.years = Math.round(yrs * 0.8); } else { S.log(s, '이직 면접에서 떨어졌다.', 'work'); S.bump(s, 'happy', -3); } } },
           { label: '지금 자리에 남기', hint: '익숙한 곳에서.', auto: () => 0.6, focus: 'rest', apply: s => { S.bump(s, 'happy', 1); } },
@@ -292,7 +292,7 @@ window.KR = window.KR || {};
     },
     {
       id: 'quit_smoking', when: never, cooldown: 10, valid: s => s.hs.smoker,
-      title: '담배를 끊을까', text: s => `${s.hs.smokeYears}년을 피웠다. 건강 ${Math.round(s.stats.health)}.`,
+      title: '담배를 끊을까', text: s => `${s.hs.smokeYears}년을 피웠다. 체력 ${Math.round(s.stats.health)}.`,
       options: s => [
         { label: '금연을 시도한다', hint: '성공 가능성 35%.', auto: () => 0.55, focus: 'health', apply: s => { if (U.chance(s, s.focus === 'health' ? 0.5 : 0.35)) { s.hs.smoker = false; s.hs.quit = true; S.log(s, '담배를 끊었다.', 'health'); S.bump(s, 'health', 4); } else S.log(s, '금연에 실패했다.', 'health'); } },
         { label: '그냥 피운다', hint: '', auto: () => 0.45, apply: () => { } },
@@ -327,7 +327,7 @@ window.KR = window.KR || {};
     },
     {
       id: 'divorce_choice', when: never, valid: s => s.love.married,
-      title: '결혼 생활이 흔들린다', text: s => `관계 ${Math.round(s.stats.rel)}. 결혼 ${s.love.yearsMarried}년. 이 세대 결혼 셋 중 하나가 이혼으로 끝난다.`,
+      title: '결혼 생활이 흔들린다', text: s => `인맥 ${Math.round(s.stats.rel)}. 결혼 ${s.love.yearsMarried}년. 이 세대 결혼 셋 중 하나가 이혼으로 끝난다.`,
       options: s => [
         { label: '이혼한다', hint: '재산을 나눈다. 아이들의 삶도 갈린다.', auto: () => 0.25, apply: s => S.divorce(s, '오랜 고민 끝에 이혼했다.') },
         { label: '상담을 받고 노력한다', hint: '관계가 조금 회복된다.', auto: () => 0.45, focus: 'rel', apply: s => { S.bump(s, 'rel', 9); S.cost(s, 150 * idx(s)); S.log(s, '부부 상담을 받았다. 조금은 나아졌다.', 'love'); } },

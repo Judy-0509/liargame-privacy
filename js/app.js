@@ -97,6 +97,7 @@
       if (label.innerHTML !== txt) label.innerHTML = txt;
       const h = A.running && !state ? `${A.speed}× · 한 해 ${(A.yearLen / 1000).toFixed(0)}초` : '';
       if (hint.textContent !== h) hint.textContent = h;
+      if (KR.PIXEL) KR.PIXEL.render($('pixel'), A.s, frac, nowMs());
     }
     requestAnimationFrame(tickBar);
   }

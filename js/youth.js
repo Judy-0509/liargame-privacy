@@ -100,13 +100,13 @@ window.KR = window.KR || {};
     id: 'eng_kinder', when: never, max: 1, valid: s => s.age <= 6,
     title: '영어유치원에 보낼까', text: s => `월 ${money(120 * idx(s))}. 집은 소득 ${dec(s)}분위.`,
     options: s => [
-      { label: '영어유치원', hint: '지식이 오르지만 아이는 지친다.', auto: () => 0.45, focus: 'study', apply: s => { S.cost(s, 1440 * idx(s)); S.bump(s, 'know', 3); S.bump(s, 'happy', -2); log(s, '영어유치원에 다녔다. 다섯 살에 알파벳 노래를 외웠다.'); } },
+      { label: '영어유치원', hint: '스펙이 오르지만 아이는 지친다.', auto: () => 0.45, focus: 'study', apply: s => { S.cost(s, 1440 * idx(s)); S.bump(s, 'know', 3); S.bump(s, 'happy', -2); log(s, '영어유치원에 다녔다. 다섯 살에 알파벳 노래를 외웠다.'); } },
       { label: '동네 유치원', hint: '놀이가 많다.', auto: () => 0.55, focus: 'rest', apply: s => { S.bump(s, 'happy', 2); S.bump(s, 'rel', 1); log(s, '동네 유치원에 다녔다. 흙장난이 일과였다.'); } },
     ],
   });
   push_({
     id: 'gifted', when: never, max: 1, valid: s => s.edu.stage === 'elem',
-    title: '영재원에 지원할까', text: s => `지식 ${Math.round(s.stats.know)}. 교육청 영재교육원은 학생 2% 남짓이 다닌다.`,
+    title: '영재원에 지원할까', text: s => `스펙 ${Math.round(s.stats.know)}. 교육청 영재교육원은 학생 2% 남짓이 다닌다.`,
     options: s => [
       { label: '교육청 영재원 지원', hint: s => `합격 가능성 ${pct((s.stats.know - 58) / 35)}. 주말마다 수업.`, auto: s => s.stats.know >= 74 ? 0.5 : 0.25, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 58) / 35)) { s.edu.gifted = true; S.bump(s, 'know', 5); S.cost(s, 60 * idx(s)); log(s, '영재교육원에 합격했다. 토요일마다 다른 학교 아이들과 수업을 들었다.'); S.bump(s, 'happy', 3); } else { log(s, '영재원 선발에서 떨어졌다.'); S.bump(s, 'happy', -3); } } },
       { label: '대학부설 영재원 지원', hint: s => `합격 가능성 ${pct((s.stats.know - 70) / 30)}. 더 어렵고 더 멀다.`, hide: s.stats.know < 76, auto: () => 0.3, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 70) / 30)) { s.edu.gifted = true; S.bump(s, 'know', 7); S.cost(s, 150 * idx(s)); log(s, '대학부설 영재교육원에 합격했다. 주말마다 대학 강의실에 앉았다.'); S.bump(s, 'happy', 3); } else { log(s, '대학부설 영재원 선발에서 떨어졌다.'); S.bump(s, 'happy', -3); } } },
@@ -124,7 +124,7 @@ window.KR = window.KR || {};
   });
   push_({
     id: 'sci_prep', when: never, max: 1, valid: s => s.edu.stage === 'mid' && !s.edu.hs,
-    title: '영재고·과학고 입시를 준비할까', text: s => `지식 ${Math.round(s.stats.know)}. 영재고는 한 해 800명, 과학고는 1,600명 남짓을 뽑는다.`,
+    title: '영재고·과학고 입시를 준비할까', text: s => `스펙 ${Math.round(s.stats.know)}. 영재고는 한 해 800명, 과학고는 1,600명 남짓을 뽑는다.`,
     options: s => [
       { label: '준비한다', hint: s => `학원비 연 ${money(2400 * idx(s))}. ${s.year >= 2003 ? '영재고 ' + pct((s.stats.know - 78) / 30) + ', ' : ''}과학고 ${pct((s.stats.know - 72) / 30)}.`, auto: s => dec(s) >= 6 ? 0.5 : 0.25, focus: 'study', apply: s => {
         S.cost(s, 2400 * idx(s)); S.bump(s, 'know', 4); S.bump(s, 'health', -2);
@@ -137,7 +137,7 @@ window.KR = window.KR || {};
   });
   push_({
     id: 'track', when: never, max: 1, valid: s => s.edu.stage === 'high' && !s.edu.track,
-    title: '문과? 이과?', text: s => `지식 ${Math.round(s.stats.know)}. 2학년부터 반이 갈린다.`,
+    title: '문과? 이과?', text: s => `스펙 ${Math.round(s.stats.know)}. 2학년부터 반이 갈린다.`,
     options: s => [
       { label: '이과', hint: '공대·자연대·의대로 간다.', auto: s => 0.5 + (s.stats.know - 60) / 200 + (s.edu.hs === '과학고' || s.edu.hs === '영재고' ? 1 : 0), apply: s => { s.edu.track = '이과'; } },
       { label: '문과', hint: '상경·인문·법·사범으로 간다.', auto: s => 0.5 - (s.stats.know - 60) / 200 + (s.edu.hs === '외고' ? 1 : 0), apply: s => { s.edu.track = '문과'; } },
@@ -147,8 +147,8 @@ window.KR = window.KR || {};
     id: 'backpack', when: never, max: 1,
     title: '배낭여행을 떠날까', text: s => `자산 ${money(s.money.assets)}. 유럽 한 달이면 ${money(400 * idx(s))}.`,
     options: s => [
-      { label: '유럽 한 달', hint: '행복 +8. 돈이 든다.', auto: () => s.money.assets >= 400 * idx(s) ? 0.45 : 0.2, focus: 'rest', apply: s => { s.flags.backpack = true; S.cost(s, 400 * idx(s)); S.bump(s, 'happy', 8); S.bump(s, 'rel', 2); S.bump(s, 'know', 1); log(s, '유럽으로 배낭여행을 떠났다. 기차에서 한 달을 살았다.'); } },
-      { label: '국내 한 바퀴', hint: '행복 +4.', auto: () => 0.3, apply: s => { s.flags.backpack = true; S.cost(s, 100 * idx(s)); S.bump(s, 'happy', 4); log(s, '기차표 한 장으로 전국을 돌았다.'); } },
+      { label: '유럽 한 달', hint: '멘탈 +8. 돈이 든다.', auto: () => s.money.assets >= 400 * idx(s) ? 0.45 : 0.2, focus: 'rest', apply: s => { s.flags.backpack = true; S.cost(s, 400 * idx(s)); S.bump(s, 'happy', 8); S.bump(s, 'rel', 2); S.bump(s, 'know', 1); log(s, '유럽으로 배낭여행을 떠났다. 기차에서 한 달을 살았다.'); } },
+      { label: '국내 한 바퀴', hint: '멘탈 +4.', auto: () => 0.3, apply: s => { s.flags.backpack = true; S.cost(s, 100 * idx(s)); S.bump(s, 'happy', 4); log(s, '기차표 한 장으로 전국을 돌았다.'); } },
       { label: '다음에', hint: '', auto: () => 0.25, apply: s => { s.flags.backpack = true; } },
     ],
   });
@@ -171,14 +171,14 @@ window.KR = window.KR || {};
   push_({
     id: 'campus', when: never, valid: s => s.edu.stage === 'univ' && !!s.edu.univ && s.mil.status !== 'serving',
     title: s => { const e = s.edu; const n = Math.min(e.univ.years, e.univ.years - e.left + 1); return `대학 ${n}학년. 올해는 무엇을 할까`; },
-    text: s => { const e = s.edu; return `${e.univ.kind} · ${e.major} 계열${e.sub ? ` · ${e.sub}` : ''}. 지식 ${Math.round(s.stats.know)}, 관계 ${Math.round(s.stats.rel)}, 현금 ${money(s.money.assets)}.`; },
+    text: s => { const e = s.edu; return `${e.univ.kind} · ${e.major} 계열${e.sub ? ` · ${e.sub}` : ''}. 스펙 ${Math.round(s.stats.know)}, 인맥 ${Math.round(s.stats.rel)}, 현금 ${money(s.money.assets)}.`; },
     options: s => {
       const e = s.edu, y = s.year, n = Math.min(e.univ.years, e.univ.years - e.left + 1), lastYear = e.left === 1, tier = e.univ.tier, sci = ['공학', '자연', '의약'].includes(e.major);
       const tutorPay = (tier >= 3 ? 900 : tier === 2 ? 650 : 400) * idx(s);
       const internP = U.clamp(0.25 + (s.stats.know - 60) / 150 + (tier >= 3 ? 0.25 : tier === 2 ? 0.1 : -0.05) + (e.spec || 0), 0.1, 0.9);
       return [
         { label: '동아리', hint: s.flags.clubIn ? '올해도 동아리. 운영진이 될 수도.' : '밴드, 춤, 봉사, 학술… 사람을 얻는다.', auto: () => n <= 2 ? 0.28 : 0.12, focus: 'rel', apply: s => { S.bump(s, 'rel', 4); S.bump(s, 'happy', 3); if (!s.flags.clubIn) { s.flags.clubIn = true; log(s, '동아리에 들어갔다. 동방에서 살다시피 했다.'); } else if (U.chance(s, 0.4)) { log(s, '동아리 운영진을 맡았다. 공연 날 울었다.'); S.bump(s, 'rel', 3); } else log(s, '동아리 공연 무대에 올랐다.'); } },
-        { label: '학생회', hint: '과 학생회·총학. 관계가 넓어지고 학점이 깎인다.', hide: n > 3, auto: () => 0.06, focus: 'rel', apply: s => { S.bump(s, 'rel', 6); S.bump(s, 'know', -1); S.bump(s, 'happy', 2); log(s, '학생회에 들어갔다. 밤새 현수막을 만들었다.'); } },
+        { label: '학생회', hint: '과 학생회·총학. 인맥이 넓어지고 학점이 깎인다.', hide: n > 3, auto: () => 0.06, focus: 'rel', apply: s => { S.bump(s, 'rel', 6); S.bump(s, 'know', -1); S.bump(s, 'happy', 2); log(s, '학생회에 들어갔다. 밤새 현수막을 만들었다.'); } },
         { label: '과외 아르바이트', hint: s => `연 ${money(tutorPay)} 안팎. 대학 간판이 시급을 정한다.`, hide: y < 1980, auto: () => tier >= 2 ? 0.18 : 0.08, focus: 'money', apply: s => { S.gain(s, tutorPay); S.bump(s, 'know', 1); S.bump(s, 'health', -1); log(s, `과외를 ${U.int(s, 1, 3)}개 뛰었다. ${money(tutorPay)}을 벌었다.`); } },
         { label: '카페·편의점 아르바이트', hint: s => `연 ${money(520 * idx(s))}. 몸이 고되다.`, auto: () => dec(s) <= 4 ? 0.22 : 0.1, focus: 'money', apply: s => { S.gain(s, 520 * idx(s)); S.bump(s, 'health', -2); S.bump(s, 'happy', -1); S.bump(s, 'rel', 1); log(s, '카페 마감 알바로 한 해를 보냈다. 손님 얼굴을 다 외웠다.'); } },
         { label: '방학 인턴', hint: s => `합격 가능성 ${pct(internP)}. 대기업 문이 넓어지고 정규직 전환 기회도.`, hide: y < 2000 || n < 2, auto: () => n >= 3 ? 0.2 : 0.08, focus: 'work', apply: s => { if (U.chance(s, internP)) { const big = U.chance(s, tier >= 3 ? 0.5 : 0.25); S.gain(s, 300 * idx(s)); e.spec = (e.spec || 0) + 0.08; S.bump(s, 'know', 2); if (big) { s.flags.internBig = true; log(s, '대기업 인턴에 붙었다. 사원증을 목에 걸고 다녔다.'); } else log(s, '중소기업 인턴을 했다. 복사와 엑셀을 배웠다.'); } else { log(s, '인턴 서류에서 다 떨어졌다. 방학이 길었다.'); S.bump(s, 'happy', -3); } } },
@@ -186,17 +186,17 @@ window.KR = window.KR || {};
         { label: '대외활동', hint: '서포터즈·기자단·홍보대사. 이력서 한 줄과 친구.', hide: y < 2005, auto: () => 0.07, focus: 'rel', apply: s => { S.bump(s, 'rel', 4); e.spec = (e.spec || 0) + 0.03; log(s, U.pick(s, ['기업 서포터즈 활동을 했다. 단체 티셔츠가 생겼다.', '대학생 기자단으로 인터뷰를 다녔다.', '홍보대사로 전국을 돌았다.'])); } },
         { label: '봉사활동', hint: dec(s) >= 5 && y >= 1995 ? '교육봉사 또는 해외봉사.' : '교육봉사·복지관.', auto: () => 0.06, focus: 'rel', apply: s => { if (dec(s) >= 5 && y >= 1995 && U.chance(s, 0.5)) { S.cost(s, 100 * idx(s)); S.bump(s, 'happy', 5); S.bump(s, 'rel', 3); log(s, '해외봉사를 다녀왔다. 돌아오는 비행기에서 많이 울었다.'); } else { S.bump(s, 'rel', 3); S.bump(s, 'happy', 3); log(s, '주말마다 교육봉사를 갔다. 아이들이 선생님이라 불렀다.'); } e.spec = (e.spec || 0) + 0.02; } },
         { label: y >= 2010 ? '공모전·창업동아리' : '공모전', hint: '입상 30%. 상금과 이력.', auto: () => 0.06, focus: 'work', apply: s => { e.spec = (e.spec || 0) + 0.04; S.bump(s, 'know', 2); if (y >= 2010 && U.chance(s, 0.4)) { s.flags.startupClub = true; log(s, '창업동아리에서 앱을 만들었다. 다운로드는 서른 번.'); S.bump(s, 'rel', 2); } else if (U.chance(s, 0.3)) { const prize = U.int(s, 100, 300) * idx(s); S.gain(s, prize); S.bump(s, 'happy', 5); log(s, `공모전에서 상을 받았다. 상금 ${money(prize)}.`); } else log(s, '공모전에 냈지만 상은 없었다. 팀원들과 치킨만 남았다.'); } },
-        { label: '토익·자격증·고시반', hint: '지식 +3, 취업 확률 +. 행복 −2.', auto: () => lastYear ? 0.22 : 0.06, focus: 'study', apply: s => { S.cost(s, 150 * idx(s)); S.bump(s, 'know', 3); S.bump(s, 'happy', -2); e.spec = (e.spec || 0) + 0.05; log(s, lastYear ? '토익 점수와 자격증을 채우며 마지막 해를 보냈다.' : '고시반에 들어가 아침 7시에 도서관 문을 열었다.'); } },
+        { label: '토익·자격증·고시반', hint: '스펙 +3, 취업 확률 +. 멘탈 −2.', auto: () => lastYear ? 0.22 : 0.06, focus: 'study', apply: s => { S.cost(s, 150 * idx(s)); S.bump(s, 'know', 3); S.bump(s, 'happy', -2); e.spec = (e.spec || 0) + 0.05; log(s, lastYear ? '토익 점수와 자격증을 채우며 마지막 해를 보냈다.' : '고시반에 들어가 아침 7시에 도서관 문을 열었다.'); } },
         { label: '복수전공·부전공', hint: '다른 계열을 함께 배운다. 졸업이 늦어질 수 있다.', hide: n < 2 || n > 3 || e.major2 || e.univ.years < 4, auto: () => 0.05, focus: 'study', apply: s => { const others = Object.keys(D.majors).filter(k => k !== e.major && k !== '의약' && k !== '교육'); e.major2 = U.pick(s, others); S.bump(s, 'know', 2); if (U.chance(s, 0.5)) e.left += 1; log(s, `${e.major2} 계열을 복수전공하기 시작했다.`); } },
         { label: '교환학생', hint: s => `${money(800 * idx(s))}. 한 학기 외국에서.`, hide: y < 1990 || n < 2 || s.flags.exchange || (s.stats.know < 62) || (dec(s) < 5 && s.stats.know < 80), auto: () => 0.05, focus: 'rest', apply: s => { s.flags.exchange = true; s.flags.intl = true; S.cost(s, 800 * idx(s)); S.bump(s, 'know', 3); S.bump(s, 'happy', 5); S.bump(s, 'rel', 1); log(s, '교환학생으로 한 학기를 보냈다. 돌아오니 모든 게 작아 보였다.'); } },
         { label: '휴학하고 어학연수', hint: s => `1년 휴학, ${money(2000 * idx(s))}.`, hide: y < 1990 || dec(s) < 5 || s.flags.langStudy || n < 2 || lastYear, auto: () => dec(s) >= 7 ? 0.06 : 0.03, focus: 'study', apply: s => { s.flags.langStudy = true; s.flags.intl = true; S.cost(s, 2000 * idx(s)); e.left += 1; S.bump(s, 'know', 5); S.bump(s, 'happy', 4); log(s, '휴학하고 어학연수를 떠났다. 1년 뒤 영어로 꿈을 꿨다.'); } },
-        { label: '여행', hint: y >= 1989 && (s.money.assets >= 400 * idx(s) || dec(s) >= 5) ? '방학에 해외로. 행복 +8.' : '방학에 국내 여행. 행복 +5.', auto: () => 0.06, focus: 'rest', apply: s => { const abroad = y >= 1989 && (s.money.assets >= 400 * idx(s) || dec(s) >= 5); S.cost(s, (abroad ? 400 : 150) * idx(s)); S.bump(s, 'happy', abroad ? 8 : 5); S.bump(s, 'rel', 2); S.bump(s, 'know', 1); log(s, abroad ? U.pick(s, ['방학 내내 유럽을 돌았다. 기차에서 잠들었다.', '동남아를 배낭 하나로 다녔다.', '일본 소도시를 걸었다.']) : U.pick(s, ['내일로 기차표로 전국을 돌았다.', '친구들과 제주 한 달 살기.', '동해안을 따라 자전거로 달렸다.'])); } },
+        { label: '여행', hint: y >= 1989 && (s.money.assets >= 400 * idx(s) || dec(s) >= 5) ? '방학에 해외로. 멘탈 +8.' : '방학에 국내 여행. 멘탈 +5.', auto: () => 0.06, focus: 'rest', apply: s => { const abroad = y >= 1989 && (s.money.assets >= 400 * idx(s) || dec(s) >= 5); S.cost(s, (abroad ? 400 : 150) * idx(s)); S.bump(s, 'happy', abroad ? 8 : 5); S.bump(s, 'rel', 2); S.bump(s, 'know', 1); log(s, abroad ? U.pick(s, ['방학 내내 유럽을 돌았다. 기차에서 잠들었다.', '동남아를 배낭 하나로 다녔다.', '일본 소도시를 걸었다.']) : U.pick(s, ['내일로 기차표로 전국을 돌았다.', '친구들과 제주 한 달 살기.', '동해안을 따라 자전거로 달렸다.'])); } },
         { label: '휴학', hint: '1년 쉰다. 알바·여행·워킹홀리데이·시험 준비·창업·입대 중 하나.', hide: (s.flags.leaves || 0) >= 2, auto: () => (s.sex === 'M' && s.mil.status === 'none' && n >= 1 ? 0.25 : n >= 2 ? 0.07 : 0.03), focus: 'rest', apply: s => { e.left += 1; s.flags.leaves = (s.flags.leaves || 0) + 1; log(s, '휴학계를 냈다.'); push(s, 'leave'); } },
         { label: (() => { const t = S.transferTarget(s); return t ? `편입 준비 (${t.name})` : '편입 준비'; })(), hint: s => { const t = S.transferTarget(s); const p = U.clamp(0.2 + (s.stats.know - 62) / 100 + (e.spec || 0), 0.08, 0.7); return t ? `합격 ${pct(p)}. 붙으면 3학년으로 옮긴다.` : ''; }, hide: !S.transferTarget(s) || !(n === 2 || (e.univ.years === 2 && lastYear)) || e.transferred, auto: () => e.univ.tier === 0 ? 0.25 : e.univ.tier === 1 ? 0.14 : 0.04, focus: 'study', apply: s => { const t = S.transferTarget(s); const p = U.clamp(0.2 + (s.stats.know - 62) / 100 + (e.spec || 0), 0.08, 0.7); S.bump(s, 'know', 2); S.cost(s, 200 * idx(s)); if (t && U.chance(s, p)) S.transferTo(s, t.id); else { log(s, '편입 시험에서 떨어졌다. 다니던 학교에 남았다.'); S.bump(s, 'happy', -3); } } },
         { label: '반수', hint: '다니면서 다시 수능. 떨어지면 돌아온다.', hide: n !== 1 || y < 1995 || e.univ.tier >= 3 || e.repeat >= 2 || e.fallback, auto: () => e.univ.tier <= 1 && s.stats.know >= 66 ? 0.1 : 0.02, focus: 'study', apply: s => { e.fallback = { univ: { ...e.univ }, left: e.left, major: e.major, sub: e.sub }; e.stage = 'repeat'; e.repeat += 1; e.plan = null; e.admits = null; e.examYear = s.year; S.cost(s, 800 * idx(s)); log(s, '반수를 시작했다. 학교와 학원을 오갔다.'); push(s, 'univ_apply'); } },
         { label: '연애에 집중', hint: s.love.partner ? '지금 사람과 더 깊이.' : '소개팅, 과 모임, 동아리 뒤풀이.', auto: () => s.love.partner ? 0.06 : 0.07, focus: 'rel', apply: s => { if (s.love.partner) { S.bump(s, 'happy', 5); S.bump(s, 'rel', 3); s.love.since += 0; log(s, '둘이서 한 해를 보냈다. 기념일마다 사진이 쌓였다.'); } else if (U.chance(s, 0.5)) { s.love.partner = { since: s.age }; s.love.since = 0; s.flags.partnerEver = true; S.bump(s, 'happy', 6); log(s, '소개팅 세 번 만에 사귀는 사람이 생겼다.'); } else { S.bump(s, 'happy', -1); S.bump(s, 'rel', 2); log(s, '소개팅은 많이 했지만 이어지지 않았다.'); } } },
-        { label: '학점에 집중', hint: '지식 +4. 장학금 가능성이 오른다.', auto: () => 0.1, focus: 'study', apply: s => { S.bump(s, 'know', 4); S.bump(s, 'rel', -1); if (s.stats.know >= 72 && U.chance(s, 0.5)) { S.gain(s, 250 * idx(s)); log(s, '학점을 챙긴 해. 성적 장학금이 나왔다.'); } else log(s, '도서관과 강의실만 오갔다.'); } },
-        { label: '그냥 논다', hint: '행복 +6. 나중에 조금 후회할지도.', auto: () => 0.07, focus: 'rest', apply: s => { S.bump(s, 'happy', 6); S.bump(s, 'know', -1); S.bump(s, 'rel', 2); log(s, U.pick(s, ['PC방과 술자리로 한 해가 갔다.', '친구들과 전국을 쏘다녔다.', '게임 랭킹을 올리느라 밤을 새웠다.'])); } },
+        { label: '학점에 집중', hint: '스펙 +4. 장학금 가능성이 오른다.', auto: () => 0.1, focus: 'study', apply: s => { S.bump(s, 'know', 4); S.bump(s, 'rel', -1); if (s.stats.know >= 72 && U.chance(s, 0.5)) { S.gain(s, 250 * idx(s)); log(s, '학점을 챙긴 해. 성적 장학금이 나왔다.'); } else log(s, '도서관과 강의실만 오갔다.'); } },
+        { label: '그냥 논다', hint: '멘탈 +6. 나중에 조금 후회할지도.', auto: () => 0.07, focus: 'rest', apply: s => { S.bump(s, 'happy', 6); S.bump(s, 'know', -1); S.bump(s, 'rel', 2); log(s, U.pick(s, ['PC방과 술자리로 한 해가 갔다.', '친구들과 전국을 쏘다녔다.', '게임 랭킹을 올리느라 밤을 새웠다.'])); } },
       ];
     },
   });
@@ -207,12 +207,12 @@ window.KR = window.KR || {};
       const y = s.year, male = s.sex === 'M' && s.mil.status === 'none';
       return [
         { label: '입대한다', hint: '휴학과 함께 군대로. 복학은 전역 뒤.', hide: !male, auto: () => 3, apply: s => { s.edu.left -= 1; s.mil.enlistAt = s.age; log(s, '휴학하고 입대하기로 했다.'); } },
-        { label: '알바로 돈을 모은다', hint: s => `${money(1300 * idx(s))}. 건강 −2.`, auto: () => 0.3, focus: 'money', apply: s => { S.gain(s, 1300 * idx(s)); S.bump(s, 'health', -2); S.bump(s, 'happy', -1); log(s, U.pick(s, ['1년 내내 공장과 카페를 오가며 등록금을 모았다.', '물류센터 야간 알바로 1년을 보냈다.', '학원 조교로 일하며 돈을 모았다.'])); } },
+        { label: '알바로 돈을 모은다', hint: s => `${money(1300 * idx(s))}. 체력 −2.`, auto: () => 0.3, focus: 'money', apply: s => { S.gain(s, 1300 * idx(s)); S.bump(s, 'health', -2); S.bump(s, 'happy', -1); log(s, U.pick(s, ['1년 내내 공장과 카페를 오가며 등록금을 모았다.', '물류센터 야간 알바로 1년을 보냈다.', '학원 조교로 일하며 돈을 모았다.'])); } },
         { label: '워킹홀리데이', hint: s => `호주·캐나다·일본. 비용 ${money(300 * idx(s))}, 벌이 ${money(1000 * idx(s))}.`, hide: y < 1995, auto: () => 0.1, focus: 'rest', apply: s => { S.cost(s, 300 * idx(s)); S.gain(s, 1000 * idx(s)); S.bump(s, 'know', 3); S.bump(s, 'happy', 7); s.flags.intl = true; log(s, U.pick(s, ['호주 농장에서 1년을 일했다. 영어와 햇볕이 늘었다.', '캐나다 카페에서 워킹홀리데이를 보냈다.', '일본 편의점에서 일하며 1년을 살았다.'])); } },
         { label: '긴 여행', hint: s => (s.money.assets >= 500 * idx(s) || dec(s) >= 6 ? `해외 장기 여행 ${money(500 * idx(s))}.` : `국내 장기 여행 ${money(200 * idx(s))}.`), auto: () => 0.1, focus: 'rest', apply: s => { const abroad = s.money.assets >= 500 * idx(s) || dec(s) >= 6; S.cost(s, (abroad ? 500 : 200) * idx(s)); S.bump(s, 'happy', 9); S.bump(s, 'rel', 2); S.bump(s, 'know', 1); log(s, abroad ? '반년 동안 배낭 하나로 세계를 돌았다.' : '전국을 느리게 돌았다. 작은 도시에서 오래 머물렀다.'); } },
-        { label: '시험·자격증 준비', hint: '지식 +4, 스펙 +. 행복 −2.', auto: () => 0.18, focus: 'study', apply: s => { S.bump(s, 'know', 4); S.bump(s, 'happy', -2); s.edu.spec = (s.edu.spec || 0) + 0.05; log(s, '휴학하고 시험 준비에 매달렸다. 독서실 불빛이 익숙해졌다.'); } },
+        { label: '시험·자격증 준비', hint: '스펙 +4, 스펙 +. 멘탈 −2.', auto: () => 0.18, focus: 'study', apply: s => { S.bump(s, 'know', 4); S.bump(s, 'happy', -2); s.edu.spec = (s.edu.spec || 0) + 0.05; log(s, '휴학하고 시험 준비에 매달렸다. 독서실 불빛이 익숙해졌다.'); } },
         { label: '창업을 해 본다', hint: s => `${money(1000 * idx(s))}. 성공 25%.`, hide: y < 2010, auto: () => 0.05, focus: 'work', apply: s => { S.cost(s, 1000 * idx(s)); s.flags.startupClub = true; if (U.chance(s, 0.25)) { S.gain(s, 1500 * idx(s)); S.bump(s, 'happy', 8); log(s, '휴학하고 만든 서비스가 돈을 벌기 시작했다.'); } else { S.bump(s, 'happy', -4); S.bump(s, 'know', 3); log(s, '휴학하고 창업했지만 1년 만에 접었다. 배운 건 많았다.'); } } },
-        { label: '그냥 쉰다', hint: '행복 +8, 건강 +3. 지식 −2.', auto: () => 0.25, focus: 'rest', apply: s => { S.bump(s, 'happy', 8); S.bump(s, 'health', 3); S.bump(s, 'know', -2); log(s, '아무것도 하지 않는 1년을 보냈다. 처음으로 늦잠이 죄책감 없이 왔다.'); } },
+        { label: '그냥 쉰다', hint: '멘탈 +8, 체력 +3. 스펙 −2.', auto: () => 0.25, focus: 'rest', apply: s => { S.bump(s, 'happy', 8); S.bump(s, 'health', 3); S.bump(s, 'know', -2); log(s, '아무것도 하지 않는 1년을 보냈다. 처음으로 늦잠이 죄책감 없이 왔다.'); } },
       ];
     },
   });

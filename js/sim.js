@@ -421,7 +421,7 @@ window.KR = window.KR || {};
         if (a >= 60 && w.type !== '농업' && U.chance(s, a >= 70 ? 0.6 : 0.2)) { retire(s, '일을 그만두고 쉬기로 했다.'); return; }
         if (U.chance(s, 0.06) && a < 50) { S.log(s, '승진했다.', 'work'); pay *= 1.08; s.yearShock.happy += 5; }
         if (U.chance(s, 0.07) && s.focus !== 'rest') { S.log(s, '야근이 이어진 해였다.', 'work'); S.bump(s, 'health', -3); s.yearShock.happy -= 4; }
-        if (s.stats.happy < 32 && U.chance(s, 0.3)) pushDecision(s, 'burnout');
+        if (s.stats.happy < 32 && U.chance(s, s.stats.health < 50 ? 0.5 : 0.3)) pushDecision(s, 'burnout');
         if (w.years >= 3 && a < 45 && U.chance(s, 0.05)) pushDecision(s, 'job_change');
       }
       if (a >= 75 && w.status === 'self') { retire(s, '가게를 정리하고 쉬기로 했다.'); return; }
@@ -838,7 +838,7 @@ window.KR = window.KR || {};
     return S.metrics(s);
   };
   S.RANK_KEYS = ['score', 'wealth', 'age', 'happy', 'income', 'rel'];
-  S.RANK_LABEL = { score: '인생 점수', wealth: '최종 재산', age: '수명', happy: '행복', income: '생애 소득', rel: '관계' };
+  S.RANK_LABEL = { score: '인생 점수', wealth: '최종 재산', age: '수명', happy: '멘탈', income: '생애 소득', rel: '인맥' };
   S.percentile = (sorted, v) => { let below = 0, ties = 0; for (const x of sorted) { if (x < v) below++; else if (x === v) ties++; } return sorted.length ? (below + ties * 0.5) / sorted.length : 0.5; };
   S.rankOf = (sorted, v) => { let above = 0; for (const x of sorted) if (x > v) above++; return above + 1; };
   S.scoreOf = (m, bench) => Math.round(100 * (S.percentile(bench.age, m.age) + S.percentile(bench.happy, m.happy) + S.percentile(bench.rel, m.rel) + S.percentile(bench.wealth, m.wealth)) / 4);

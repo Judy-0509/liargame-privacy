@@ -79,6 +79,7 @@
   <header class="topbar">
     <div class="who"><b id="t-name">—</b> <span id="t-meta"></span></div>
     <div class="age"><span id="t-age">0</span><small>세</small> <span id="t-year" class="year"></span></div>
+    <canvas id="pixel" class="pixel" width="240" height="52" aria-label="현재 상태 그림"></canvas>
     <div class="controls">
       <button id="btn-pause" title="일시정지 (스페이스)">⏸</button>
       <div class="speeds" id="speeds"><button data-x="1" class="on">1×</button><button data-x="2">2×</button><button data-x="4">4×</button><button data-x="8">8×</button><button data-x="16">16×</button></div>
@@ -90,10 +91,10 @@
   </header>
 
   <div class="stats">
-    <div class="stat"><span>건강</span><div class="bar"><i id="s-health"></i></div><em id="v-health"></em></div>
-    <div class="stat"><span>행복</span><div class="bar"><i id="s-happy"></i></div><em id="v-happy"></em></div>
-    <div class="stat"><span>지식</span><div class="bar"><i id="s-know"></i></div><em id="v-know"></em></div>
-    <div class="stat"><span>관계</span><div class="bar"><i id="s-rel"></i></div><em id="v-rel"></em></div>
+    <div class="stat" title="몸의 힘. 병·사고·야근을 버티고 수명을 좌우한다"><span>체력</span><div class="bar"><i id="s-health"></i></div><em id="v-health"></em></div>
+    <div class="stat" title="마음의 상태. 소득·가족·건강·빚의 영향을 받고 번아웃을 가른다"><span>멘탈</span><div class="bar"><i id="s-happy"></i></div><em id="v-happy"></em></div>
+    <div class="stat" title="공부·학력·자격·경력. 입시와 취업 확률을 정한다"><span>스펙</span><div class="bar"><i id="s-know"></i></div><em id="v-know"></em></div>
+    <div class="stat" title="가족·친구·동료. 결혼, 추천 취업, 노년의 외로움을 가른다"><span>인맥</span><div class="bar"><i id="s-rel"></i></div><em id="v-rel"></em></div>
   </div>
   <div class="moneyline" id="moneyline"></div>
 
@@ -183,6 +184,7 @@
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/sim.js"></script>
+<script src="js/pixel.js"></script>
 <script src="js/admission.js"></script>
 <script src="js/decisions.js"></script>
 <script src="js/youth.js"></script>

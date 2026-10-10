@@ -211,7 +211,7 @@ window.KR = window.KR || {};
       <li><b>결정</b> 진학, 병역, 일, 사랑, 아이, 집, 치료 같은 갈림길에서 시간이 멈추고 묻습니다. 선택은 삶을 바꾸지만, 태어난 집과 해의 통계를 완전히 벗어나기는 어렵습니다.</li>
       <li><b>자동 결정</b> 켜 두면 시뮬레이션이 통계적으로 흔한 쪽을 고릅니다. 이번 해의 초점은 자동 선택과 스탯 변화에 영향을 줍니다.</li>
       <li><b>생각 멈춤</b> 5, 15, 30, 50, 70세에 시간이 멈추고 한 줄을 남길 수 있습니다. 메뉴에서 끌 수 있습니다.</li>
-      <li><b>스탯</b> 건강·행복·지식·관계(0~100)는 가능성을 높이거나 낮출 뿐, 결과를 정하지 않습니다.</li>
+      <li><b>스탯</b> 체력(몸, 병과 수명), 멘탈(마음, 소득·가족·빚의 영향을 받고 번아웃을 가름), 스펙(공부·학력·자격·경력, 입시와 취업 확률), 인맥(가족·친구·동료, 결혼·추천 취업·노년의 외로움). 0~100이며 가능성을 높이거나 낮출 뿐 결과를 정하지 않습니다.</li>
       <li><b>돈</b> 모든 금액은 2024년 원화 가치 기준 근사치입니다. 지난 세상의 소득과 집값은 당시 실질 수준으로 환산했습니다.</li>
       <li><b>오늘의 순위</b> 서버가 연결돼 있으면 삶이 끝날 때 기록이 익명으로 올라가고, 그날 플레이한 모든 사람 가운데 몇 위인지 보여 줍니다. 닉네임은 선택이며 홈에서 입력합니다. 서버 설정은 저장소의 server 폴더를 보세요.</li>
       <li><b>순위</b> 삶이 끝나면 같은 해에 태어난 500명을 자동으로 살게 한 뒤, 수명·행복·관계·재산·생애 소득에서 몇 번째인지 보여 줍니다. 인생 점수는 수명·행복·관계·재산 네 항목의 백분위 평균(0~100)입니다. 홈의 순위표에서는 이 기기에 남은 삶들끼리 겨룹니다.</li>
@@ -233,7 +233,7 @@ window.KR = window.KR || {};
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.8</b> — 대학 생활에 휴학(입대·알바·워킹홀리데이·긴 여행·시험 준비·창업·쉬기), 편입(한 단계 위 묶음으로 3학년 편입, 전문대→4년제 포함), 반수(떨어지면 복귀), 방학 여행 추가.</p><p class="text"><b>v0.7</b> — 대학 생활: 매년 "올해는 무엇을 할까" 결정(동아리·학생회·과외·알바·방학 인턴·학부연구생·대외활동·봉사·공모전·창업동아리·토익·복수전공·교환학생·어학연수·연애·학점·놀기)과 인턴 정규직 전환, 교수 추천 취업, 논문 공저, 공모전 입상, 새터·MT·축제·취업 박람회 같은 사건.</p><p class="text"><b>v0.6</b> — 대입 개편: 수능 백분위·내신 등급 모형, 수시 6장+정시 3장(상향·적정·안정 프리셋과 직접 고르기), 묶음 이름 대학 13분류(국립·사립·소재지·등록금), 7대 계열 선택과 2학년 중계열 결정, 전과. 쉬었음·흡연·음주·학원·아르바이트를 무작위가 아니라 내가 고르는 결정으로 변경.</p><p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v0.9</b> — 네 스탯을 체력·멘탈·스펙·인맥으로 재정의(인맥이 취업·이직 확률에, 체력이 번아웃에 반영). 상단에 지금 상태를 그리는 픽셀 장면(계절·해의 위치·집·복장·표정·안경·배우자·자녀·반려동물·차·재산)을 추가.</p><p class="text"><b>v0.8</b> — 대학 생활에 휴학(입대·알바·워킹홀리데이·긴 여행·시험 준비·창업·쉬기), 편입(한 단계 위 묶음으로 3학년 편입, 전문대→4년제 포함), 반수(떨어지면 복귀), 방학 여행 추가.</p><p class="text"><b>v0.7</b> — 대학 생활: 매년 "올해는 무엇을 할까" 결정(동아리·학생회·과외·알바·방학 인턴·학부연구생·대외활동·봉사·공모전·창업동아리·토익·복수전공·교환학생·어학연수·연애·학점·놀기)과 인턴 정규직 전환, 교수 추천 취업, 논문 공저, 공모전 입상, 새터·MT·축제·취업 박람회 같은 사건.</p><p class="text"><b>v0.6</b> — 대입 개편: 수능 백분위·내신 등급 모형, 수시 6장+정시 3장(상향·적정·안정 프리셋과 직접 고르기), 묶음 이름 대학 13분류(국립·사립·소재지·등록금), 7대 계열 선택과 2학년 중계열 결정, 전과. 쉬었음·흡연·음주·학원·아르바이트를 무작위가 아니라 내가 고르는 결정으로 변경.</p><p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
   UI.fmtMetric = (k, v) => k === 'wealth' || k === 'income' ? U.fmtMan(v) : k === 'age' ? `${v}세` : k === 'score' ? `${v}점` : `${Math.round(v)}`;
@@ -267,7 +267,7 @@ window.KR = window.KR || {};
     const el = $('d-global'); if (!el) return;
     if (err) { el.innerHTML = `<span class="err">오늘의 순위 서버에 연결하지 못했습니다.</span>`; return; }
     const g = rec.global; if (!g) { el.innerHTML = ''; return; }
-    el.innerHTML = `<span>오늘 플레이한 <b>${g.n}명</b> 중 인생 점수 <b>${g.score.rank}위</b> · 재산 ${g.wealth.rank}위 · 수명 ${g.age.rank}위 · 행복 ${g.happy.rank}위</span><button class="small" id="btn-today-from-death">오늘의 순위 보기</button>`;
+    el.innerHTML = `<span>오늘 플레이한 <b>${g.n}명</b> 중 인생 점수 <b>${g.score.rank}위</b> · 재산 ${g.wealth.rank}위 · 수명 ${g.age.rank}위 · 멘탈 ${g.happy.rank}위</span><button class="small" id="btn-today-from-death">오늘의 순위 보기</button>`;
   };
   UI.todayHTML = (data, key, days, myIds, err) => {
     const sel = `<select id="today-key" style="width:auto;padding:4px 8px">${S.RANK_KEYS.map(k => `<option value="${k}" ${k === key ? 'selected' : ''}>${S.RANK_LABEL[k]}</option>`).join('')}</select>`;
@@ -305,7 +305,7 @@ window.KR = window.KR || {};
       cell('마지막 주거', sm.home),
       cell('남긴 재산', U.fmtMan(sm.assets)),
       cell('생애 소득', U.fmtMan(sm.lifetimeIncome)),
-      cell('마지막 스탯', `건강 ${Math.round(s.stats.health)} · 행복 ${Math.round(s.stats.happy)} · 지식 ${Math.round(s.stats.know)} · 관계 ${Math.round(s.stats.rel)}`),
+      cell('마지막 스탯', `체력 ${Math.round(s.stats.health)} · 멘탈 ${Math.round(s.stats.happy)} · 스펙 ${Math.round(s.stats.know)} · 인맥 ${Math.round(s.stats.rel)}`),
     ].join('');
     $('d-rank').innerHTML = rec ? UI.rankHTML(rec) + UI.localRankLine(rec.lives || [], rec) : '';
     const notes = Object.entries(s.notes || {}).filter(x => x[1]);
@@ -331,8 +331,8 @@ window.KR = window.KR || {};
     for (let a = 0; a < 100; a++) { const m = s.map[a]; ctx.fillStyle = m ? colors[m.st] || '#888' : '#33353f'; ctx.globalAlpha = m ? 0.5 + m.h / 200 : 0.5; ctx.fillRect(80 + (a % cols) * (size + 4), startY + Math.floor(a / cols) * (size + 4), size, size); }
     ctx.globalAlpha = 1; y = startY + 4 * (size + 4) + 70;
     ctx.fillStyle = '#ecebe6'; ctx.font = '400 36px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
-    ctx.fillText(`건강 ${Math.round(s.stats.health)}   행복 ${Math.round(s.stats.happy)}   지식 ${Math.round(s.stats.know)}   관계 ${Math.round(s.stats.rel)}`, 80, y); y += 60;
-    if (rec && rec.rank) { ctx.fillStyle = '#f2b84b'; ctx.font = '600 38px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`인생 점수 ${rec.rank.score.value}점 · 같은 해에 태어난 ${rec.rank.n}명 중 ${rec.rank.score.rank}위`, 80, y); y += 54; ctx.fillStyle = '#9a9ca8'; ctx.font = '400 32px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`재산 ${rec.rank.wealth.rank}위 · 수명 ${rec.rank.age.rank}위 · 행복 ${rec.rank.happy.rank}위 · 관계 ${rec.rank.rel.rank}위`, 80, y); y += 60; }
+    ctx.fillText(`체력 ${Math.round(s.stats.health)}   멘탈 ${Math.round(s.stats.happy)}   스펙 ${Math.round(s.stats.know)}   인맥 ${Math.round(s.stats.rel)}`, 80, y); y += 60;
+    if (rec && rec.rank) { ctx.fillStyle = '#f2b84b'; ctx.font = '600 38px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`인생 점수 ${rec.rank.score.value}점 · 같은 해에 태어난 ${rec.rank.n}명 중 ${rec.rank.score.rank}위`, 80, y); y += 54; ctx.fillStyle = '#9a9ca8'; ctx.font = '400 32px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`재산 ${rec.rank.wealth.rank}위 · 수명 ${rec.rank.age.rank}위 · 멘탈 ${rec.rank.happy.rank}위 · 인맥 ${rec.rank.rel.rank}위`, 80, y); y += 60; }
     ctx.fillStyle = '#6f717c'; ctx.font = '400 28px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.fillText(`한국 통계로 만든 인생 시뮬레이션 · ${location.host}${location.pathname.replace(/index\.html$/, '')}`, 80, H - 70);
   };
