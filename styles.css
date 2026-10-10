@@ -179,7 +179,7 @@ input[type=number], select, textarea { width: 100%; background: var(--bg2); bord
 .apply-row .lab b { color: var(--text); font-variant-numeric: tabular-nums; }
 .ctr { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
 .ctr button { padding: 0 8px; font-size: .9rem; line-height: 1.5; border-radius: 6px; }
-.ctr b { min-width: 1.2em; text-align: center; }
+.ctr b { min-width: 2.2em; text-align: center; font-size: .86rem; }
 .ranking-table .meta { color: var(--muted); font-size: .78rem; }
 .notes { max-height: 14vh; }
 
