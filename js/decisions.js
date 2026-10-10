@@ -25,9 +25,10 @@ window.KR = window.KR || {};
     s.housing = kind; return null;
   };
 
-  const capitalP = s => 1 / (1 + Math.exp(-(s.stats.know - 64) / 7));
-  const localP = s => 1 / (1 + Math.exp(-(s.stats.know - 48) / 8));
-  const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100, 0.03, 0.7) * eduF; };
+  const capitalP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 64) / 7));
+  const localP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 48) / 8));
+  const majorF = s => ({ '공학': 1.25, '상경': 1.05, '자연': 0.95, '인문사회': 0.8, '법·행정': 0.9, '사범': 0.7, '예체능': 0.6, '간호·보건': 0.8 }[s.edu.major] || 1);
+  const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t === 3 ? 1.4 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100 + (s.edu.spec || 0), 0.03, 0.75) * eduF * majorF(s); };
   const jobLabel = s => (D.jobs[s.work.type] || { label: '일터' }).label;
   const employed = s => (s.work.status === 'employed' || s.work.status === 'self') && !!s.work.type;
 
@@ -36,10 +37,12 @@ window.KR = window.KR || {};
       id: 'hs_choice', when: s => s.age === 14 && s.edu.stage === 'mid' && !s.edu.hs,
       title: '어느 고등학교로 갈까', text: s => `중학교 3학년. 지식 ${Math.round(s.stats.know)}. 집은 소득 ${s.parents.decile}분위.`,
       options: s => [
-        { label: '일반고', hint: '대학 진학을 준비한다. 가장 많은 길.', auto: () => 0.72, apply: s => { s.edu.hs = '일반고'; } },
-        { label: '특성화고·마이스터고', hint: '기술을 배워 졸업 후 바로 일한다.', auto: s => s.stats.know < 50 ? 0.3 : 0.12, focus: 'money', apply: s => { s.edu.hs = '특성화고'; S.bump(s, 'know', -3); } },
-        { label: '특목고·자사고', hint: s => `학비가 비싸다. 합격 가능성 ${pct((s.stats.know - 55) / 30)}.`, hide: s.stats.know < 60 || s.year < 1985 || s.parents.decile < 4, auto: s => s.stats.know > 72 ? 0.3 : 0.06, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 55) / 30)) { s.edu.hs = '자사고'; S.bump(s, 'know', 6); S.cost(s, 1500 * idx(s)); S.log(s, '특목고에 합격했다.', 'edu'); } else { s.edu.hs = '일반고'; S.log(s, '특목고 입시에서 떨어져 일반고로 갔다.', 'edu'); S.bump(s, 'happy', -5); } } },
-        { label: '예체능', hint: '좋아하는 것을 쫓는다. 돈이 든다.', auto: () => 0.04, focus: 'rest', apply: s => { s.edu.hs = '예술고'; S.bump(s, 'happy', 6); S.bump(s, 'rel', 3); S.cost(s, 1200 * idx(s)); } },
+        { label: '일반고', hint: '대학 진학을 준비한다. 가장 많은 길.', auto: () => 0.7, apply: s => { s.edu.hs = '일반고'; } },
+        { label: s.year >= 2010 ? '특성화고·마이스터고' : s.year >= 1998 ? '실업계 고교' : '실업계·상고·공고', hint: '기술을 배워 졸업 후 바로 일한다.', auto: s => s.stats.know < 50 ? 0.3 : 0.1, focus: 'money', apply: s => { s.edu.hs = '특성화고'; S.bump(s, 'know', -3); } },
+        { label: '과학고', hint: s => `합격 가능성 ${pct((s.stats.know - 70) / 30)}. 이공계 최상위권으로 가는 길.`, hide: s.stats.know < 76 || s.year < 1983, auto: s => s.stats.know >= 84 ? 0.6 : 0.25, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 70) / 30)) { s.edu.hs = '과학고'; S.bump(s, 'know', 6); S.log(s, '과학고에 합격했다.', 'edu'); S.bump(s, 'happy', 5); } else { s.edu.hs = '일반고'; S.log(s, '과학고 입시에서 떨어져 일반고로 갔다.', 'edu'); S.bump(s, 'happy', -5); } } },
+        { label: '외고·국제고', hint: s => `합격 가능성 ${pct((s.stats.know - 62) / 30)}. 외국어와 문과 상위권.`, hide: s.stats.know < 68 || s.year < 1984, auto: s => s.stats.know >= 76 ? 0.4 : 0.15, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 62) / 30)) { s.edu.hs = '외고'; S.bump(s, 'know', 5); S.cost(s, 900 * idx(s)); S.log(s, '외고에 합격했다.', 'edu'); S.bump(s, 'happy', 5); s.flags.intl = true; } else { s.edu.hs = '일반고'; S.log(s, '외고 입시에서 떨어져 일반고로 갔다.', 'edu'); S.bump(s, 'happy', -5); } } },
+        { label: '자사고', hint: s => `학비 연 ${money(1000 * idx(s))}. 합격 가능성 ${pct((s.stats.know - 50) / 40)}.`, hide: s.stats.know < 60 || s.year < 2002 || s.parents.decile < 4, auto: s => s.stats.know > 72 ? 0.3 : 0.08, focus: 'study', apply: s => { if (U.chance(s, (s.stats.know - 50) / 40)) { s.edu.hs = '자사고'; S.bump(s, 'know', 4); S.cost(s, 3000 * idx(s)); S.log(s, '자사고에 합격했다. 학비가 세 배였다.', 'edu'); } else { s.edu.hs = '일반고'; S.log(s, '자사고 입시에서 떨어져 일반고로 갔다.', 'edu'); S.bump(s, 'happy', -5); } } },
+        { label: '예고·체고', hint: '좋아하는 것을 쫓는다. 레슨비가 든다.', auto: () => 0.02, focus: 'rest', apply: s => { s.edu.hs = '예술고'; S.bump(s, 'happy', 6); S.bump(s, 'rel', 3); S.cost(s, 2000 * idx(s)); S.log(s, '예고에 들어갔다. 실기실에서 살았다.', 'edu'); } },
       ],
     },
     {
@@ -47,12 +50,16 @@ window.KR = window.KR || {};
       title: '수능이 끝났다. 어디로 갈까', text: s => `지식 ${Math.round(s.stats.know)}. ${s.edu.hs}. 이 해 고교 졸업자의 ${pct(U.interp(D.byYear.univRate, s.year))}가 대학에 갔다.`,
       options: s => {
         const era = U.interp(D.byYear.univRate, s.year);
+        const k = s.stats.know + S.hsBonus(s);
         return [
+          { label: '의·치·한·약대 지원', hint: s => `합격 가능성 ${pct(1 / (1 + Math.exp(-(k - 93) / 3.5)))}. 떨어지면 다른 대학으로.`, hide: k < 84 || s.edu.track === '문과', auto: s => k >= 90 ? 1.2 : 0.3, focus: 'study', apply: s => { s.edu.plan = '의약'; } },
+          { label: '최상위권 대학 지원 (SKY·KAIST 등)', hint: s => `합격 가능성 ${pct(1 / (1 + Math.exp(-(k - 93) / 4)))}. 떨어지면 수도권 4년제로.`, hide: k < 80, auto: s => era * (k >= 88 ? 1.5 : 0.5), focus: 'study', apply: s => { s.edu.plan = '최상위권'; } },
           { label: '수도권 4년제에 지원', hint: s => `합격 가능성 ${pct(capitalP(s))}. 떨어지면 지방 4년제나 전문대로.`, auto: s => era * capitalP(s) * 1.4, focus: 'study', apply: s => { s.edu.plan = '수도권4년제'; } },
+          { label: '예체능 실기 입시', hint: '실기와 레슨. 예술 계열로 간다.', hide: s.edu.hs !== '예술고', auto: () => 3, apply: s => { s.edu.plan = '예체능'; } },
           { label: '4년제 대학에 지원 (지방 포함)', hint: s => `합격 가능성 ${pct(localP(s))}.`, auto: s => era * localP(s), apply: s => { s.edu.plan = '4년제'; } },
           { label: '전문대', hint: '2년, 빨리 일터로.', auto: () => era * 0.35, apply: s => { s.edu.plan = '전문대'; } },
           { label: '바로 취업', hint: s.edu.hs === '특성화고' ? '배운 기술로 바로 일한다.' : '대학 없이 일을 시작한다.', auto: s => (1 - era) * 1.1 * (s.edu.hs === '특성화고' ? 3 : 1) * (s.parents.decile <= 2 ? 1.5 : 1), focus: 'money', apply: s => { s.edu.plan = '취업'; } },
-          { label: '재수', hint: '1년 더. 학원비가 든다.', hide: s.edu.repeat >= 1 || s.year < 1985, auto: s => s.stats.know >= 58 && s.stats.know < 78 && s.parents.decile >= 5 ? 0.3 : 0.05, apply: s => { s.edu.plan = '재수'; } },
+          { label: s.edu.repeat >= 1 ? '삼수' : '재수', hint: '1년 더. 학원비가 든다.', hide: s.edu.repeat >= 2 || s.year < 1985, auto: s => s.stats.know >= 58 && s.stats.know < 78 && s.parents.decile >= 5 ? (s.edu.repeat ? 0.08 : 0.3) : 0.05, apply: s => { s.edu.plan = '재수'; } },
         ];
       },
     },
@@ -90,7 +97,8 @@ window.KR = window.KR || {};
         { label: '대기업·공기업 공채', hint: s => `합격 가능성 ${pct(bigP(s))}. 떨어지면 1년이 간다.`, auto: s => bigP(s) * 2.5, focus: 'money', apply: s => { s.work.plan = '대기업'; } },
         { label: '중소·중견기업', hint: '취업 가능성 80%. 월급은 대기업의 절반 남짓.', auto: () => 0.9, apply: s => { s.work.plan = '중소'; } },
         { label: '공무원 시험 준비', hint: '매년 약 9%가 합격한다. 몇 년이 걸릴지 모른다.', hide: s.age > 33 || s.year < 1975, auto: s => s.stats.know > 55 ? 0.25 : 0.12, focus: 'study', apply: s => { s.work.plan = '공무원'; } },
-        { label: '전문직 시험 (의사·변호사·회계사 등)', hint: '합격 가능성 50%. 비용이 크다.', hide: s.stats.know < 86 || !(s.edu.degree === '대졸' || s.edu.degree === '대학원졸') || !(s.edu.univ && s.edu.univ.tier === 2), auto: () => 0.35, focus: 'study', apply: s => { s.work.plan = '전문직'; } },
+        { label: '교사 임용 시험', hint: '해마다 약 35%가 합격한다.', hide: s.edu.major !== '사범' || s.age > 35, auto: () => 1.2, focus: 'study', apply: s => { s.work.plan = '임용'; } },
+        { label: '전문직 시험 (회계사·변리사·세무사 등)', hint: '합격 가능성 50%. 비용이 크다.', hide: s.stats.know < 84 || !(s.edu.degree === '대졸' || s.edu.degree === '대학원졸') || !(s.edu.univ && s.edu.univ.tier >= 2), auto: () => 0.35, focus: 'study', apply: s => { s.work.plan = '전문직'; } },
         { label: '창업·자영업', hint: s => `자본 ${money(5000 * idx(s))}. 5년 생존율 34%.`, hide: s.age < 22, auto: s => s.money.assets > 5000 * idx(s) ? 0.25 : 0.08, focus: 'money', apply: s => { s.work.plan = '창업'; } },
         { label: '프리랜서·플랫폼 노동', hint: '바로 시작. 소득은 불안정하다.', hide: s.year < 2005, auto: () => 0.18, focus: 'rest', apply: s => { s.work.plan = '프리랜서'; } },
         { label: '해외로 떠나기', hint: '소득은 높지만 가족과 멀어진다.', hide: s.stats.know < 60 || s.year < 1990 || s.abroad || s.love.married, auto: () => 0.06, apply: s => { s.work.plan = '해외'; } },

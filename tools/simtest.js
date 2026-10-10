@@ -1,5 +1,5 @@
 globalThis.window = globalThis;
-require('../js/data.js'); require('../js/sim.js'); require('../js/decisions.js');
+require('../js/data.js'); require('../js/sim.js'); require('../js/decisions.js'); require('../js/youth.js');
 const S = KR.Sim, D = KR.DATA;
 const N = +process.argv[2] || 2000, BY = +process.argv[3] || 2026;
 const acc = { marryAge: { M: [], F: [] }, know17: [], partnerEver: 0, firstKidAge: [], inc35: [], kidsDist: {}, n: 0, deathAge: { M: [], F: [] }, infant: 0, univ: 0, capital: 0, married: 0, kids: 0, divorced: 0, own: 0, assets: [], causes: {}, cancer: 0, decisions: {}, smoker: 0, poverty: 0, mil: {}, degree: {}, jobs: {}, logLen: [], errors: 0 };

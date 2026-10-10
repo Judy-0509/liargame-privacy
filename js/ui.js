@@ -16,7 +16,7 @@ window.KR = window.KR || {};
     if (s.edu.stage === 'univ') return `${s.edu.univ.kind} 재학`;
     if (s.edu.stage === 'grad') return '대학원 재학';
     if (s.edu.stage === 'repeat') return '재수 중';
-    if (w.status === 'employed' || w.status === 'self') return D.jobs[w.type] ? D.jobs[w.type].label : '일';
+    if (w.status === 'employed' || w.status === 'self') return w.title || (D.jobs[w.type] ? D.jobs[w.type].label : '일');
     if (w.status === 'seeking') return w.exam ? '공무원 시험 준비' : '구직 중';
     if (w.status === 'unemployed') return '실직';
     if (w.status === 'home') return '가사·육아';
@@ -130,7 +130,7 @@ window.KR = window.KR || {};
     else if (s.love.widowed) h += grp('배우자', '세상을 떠남');
     else if (s.love.divorced) h += grp('결혼', `이혼 ${s.love.divorced}회`);
     if (s.kids.length) h += grp('자녀', s.kids.map(k => `${esc(k.n)}(${k.alive ? `${s.year - k.by}세${k.married ? ' · 결혼' : ''}${k.custody === 'ex' ? ' · 따로 산다' : ''}` : '세상을 떠남'})`).join(', '));
-    h += grp('학력', `${s.edu.degree}${s.edu.univ ? ` · ${s.edu.univ.kind}` : ''}${s.edu.hs ? ` · ${s.edu.hs}` : ''}`);
+    h += grp('학력', `${s.edu.degree}${s.edu.univ ? ` · ${s.edu.univ.kind}` : ''}${s.edu.major ? ` · ${s.edu.major}` : ''}${s.edu.hs ? ` · ${s.edu.hs}` : ''}${s.edu.track ? ` · ${s.edu.track}` : ''}${s.edu.gifted ? ' · 영재원' : ''}`);
     if (s.mil.status !== 'na') h += grp('병역', s.mil.kind ? `${s.mil.kind}${s.mil.status === 'done' ? ' 복무 마침' : ' 복무 중'}` : s.mil.status === 'exempt' ? '면제' : '아직');
     h += grp('일', `${UI.workLabel(s)}${s.work.pay && (s.work.status === 'employed' || s.work.status === 'self') ? ` · 연봉 ${U.fmtMan(s.work.pay)}` : ''}${s.work.mainType && s.work.status !== 'employed' ? ` · 주된 일자리 ${D.jobs[s.work.mainType].label}` : ''}`);
     const m = s.money;
@@ -231,7 +231,7 @@ window.KR = window.KR || {};
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v0.5</b> — 30세 이전 이벤트 대폭 확장: 돌잡이, 영어유치원, 태권도·피아노, 학습지, 반장 선거, 영재원, 경시대회, 조기유학, 영재고·과학고·외고·자사고·예고·마이스터고, 문·이과, 모의고사, 수시, 의·치·한·약대, 최상위권 대학, 전공, 학점, 동아리·학생회·CC, 어학연수, 인턴·토익, 배낭여행, 청약통장, 로스쿨·변호사 시험, 교사 임용, 신입사원·적금·헬스 등 60여 개 사건과 10개 결정 추가.</p><p class="text"><b>v0.4</b> — 오늘의 순위(서버 연동, 당일 플레이한 모든 사람 중 순위, 닉네임), 생애 단계별 사용 통계 전체 공개.</p><p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
   UI.fmtMetric = (k, v) => k === 'wealth' || k === 'income' ? U.fmtMan(v) : k === 'age' ? `${v}세` : k === 'score' ? `${v}점` : `${Math.round(v)}`;
