@@ -3,6 +3,32 @@
   const LS = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }, del: k => { try { localStorage.removeItem(k); } catch (e) { } } };
   const A = { s: null, timer: null, reveals: [], running: false, speed: 1, minutes: 30, era: 'now', birthYear: 2026, pausesOn: true, auto: false, music: null, busy: false };
 
+  const BENCH_N = 500;
+  const benchKey = y => 'krlife.bench.' + y;
+  function loadBench(y) { const b = LS.get(benchKey(y), null); return b && b.v === S.BENCH_VERSION && b.n >= BENCH_N ? b : null; }
+  function saveBench(y, b) { const ys = LS.get('krlife.benchYears', []).filter(x => x !== y); ys.push(y); while (ys.length > 6) LS.del(benchKey(ys.shift())); LS.set('krlife.benchYears', ys); LS.set(benchKey(y), b); }
+  function startBench(y) {
+    if (A.benchYear === y && (A.bench || A.benchRaw)) return;
+    clearTimeout(A.benchTimer); A.benchYear = y; A.benchRaw = null;
+    const cached = loadBench(y); if (cached) { A.bench = cached; return; }
+    A.bench = null; A.benchRaw = [];
+    const step = () => {
+      if (A.benchYear !== y || A.bench) return;
+      const raw = A.benchRaw, t0 = performance.now();
+      while (raw.length < BENCH_N && performance.now() - t0 < 25) raw.push(S.autoLife(y, y * 1000 + raw.length));
+      if (raw.length >= BENCH_N) { A.bench = S.finishBench(raw); A.benchRaw = null; saveBench(y, A.bench); }
+      else A.benchTimer = setTimeout(step, 60);
+    };
+    A.benchTimer = setTimeout(step, 400);
+  }
+  function ensureBench(y) {
+    if (A.bench && A.benchYear === y) return A.bench;
+    const cached = loadBench(y); if (cached) { A.bench = cached; A.benchYear = y; return cached; }
+    const raw = A.benchYear === y && A.benchRaw ? A.benchRaw : [];
+    while (raw.length < BENCH_N) raw.push(S.autoLife(y, y * 1000 + raw.length));
+    clearTimeout(A.benchTimer); A.bench = S.finishBench(raw); A.benchYear = y; A.benchRaw = null; saveBench(y, A.bench); return A.bench;
+  }
+
   const pauseQ = { 5: '다섯 살. 이 아이의 하루는 어땠을까요? 한 줄을 남겨 보세요.', 15: '열다섯. 이 아이는 어떤 어른이 되고 싶을까요?', 30: '서른. 지금의 삶은 이 사람이 바랐던 삶일까요?', 50: '쉰. 남은 시간에 꼭 하고 싶은 일이 있다면 무엇일까요?', 70: '일흔. 돌아보면 무엇이 남았을까요?' };
 
   function yearMs() { return (A.minutes * 60 * 1000 / 88) / A.speed; }
@@ -88,20 +114,27 @@
   }
 
   function onDeath() {
-    const s = A.s; clearTimers(); A.running = false; A.busy = false;
+    const s = A.s; clearTimers(); A.running = false;
+    if (!(A.bench && A.benchYear === s.birthYear) && !loadBench(s.birthYear)) { UI.toast('같은 해에 태어난 500명의 삶을 계산하는 중…'); setTimeout(finishDeath, 80); } else finishDeath();
+  }
+  function finishDeath() {
+    const s = A.s; A.busy = false;
     const lives = LS.get('krlife.lives', []);
-    const rec = { id: s.birthYear + '-' + s.rng, summary: S.summary(s), log: s.log, death: s.death, when: Date.now(), memorial: false, candles: 0 };
-    lives.unshift(rec); LS.set('krlife.lives', lives.slice(0, 10));
+    const bench = ensureBench(s.birthYear);
+    const metrics = S.metrics(s);
+    const rec = { id: s.birthYear + '-' + s.rng, summary: S.summary(s), log: s.log, death: s.death, when: Date.now(), memorial: false, candles: 0, metrics, rank: S.rankAll(metrics, bench) };
+    lives.unshift(rec); LS.set('krlife.lives', lives.slice(0, 30));
     LS.del('krlife.current');
-    A.rec = rec;
-    UI.deathSummary(s);
+    A.rec = rec; rec.lives = lives.slice(0, 30);
+    UI.deathSummary(s, rec);
+    delete rec.lives;
     show('screen-death');
   }
 
   function updateLife(rec) { const lives = LS.get('krlife.lives', []); const i = lives.findIndex(x => x.id === rec.id); if (i >= 0) { lives[i] = rec; LS.set('krlife.lives', lives); } }
 
   function shareCard() {
-    const c = $('share-canvas'); UI.drawShareCard(c, A.s);
+    const c = $('share-canvas'); UI.drawShareCard(c, A.s, A.rec);
     c.toBlob(async blob => {
       const file = new File([blob], `5천만분의1-${A.s.name}.png`, { type: 'image/png' });
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: '5천만 분의 1', text: `${A.s.name}, ${A.s.birthYear}–${A.s.death.year}` }); return; } catch (e) { } }
@@ -150,6 +183,7 @@
       S.log(s, `당신은 ${parts.join(' ')}로 태어났습니다. 이 아이처럼 ${s.birthYear}년 ${r.short}에서 ${s.sex === 'M' ? '남자' : '여자'}로 태어날 확률은 ${(share * 100).toFixed(1)}%였습니다.`, 'birth');
     }
     A.s = s; A.busy = false; A.pending = null;
+    startBench(s.birthYear);
     S.completeYear(s);
     show('screen-life'); UI.renderAll(s);
     $('focus').value = s.focus; $('auto').checked = A.auto; $('decision-wait').hidden = true;
@@ -160,6 +194,7 @@
     const cur = LS.get('krlife.current', null); if (!cur || !cur.s) return;
     A.s = cur.s; A.minutes = cur.minutes || 30; A.auto = !!cur.auto; A.pausesOn = cur.pausesOn !== false; A.busy = false;
     setSpeed(cur.speed || 1);
+    startBench(A.s.birthYear);
     show('screen-life'); UI.renderAll(A.s); $('focus').value = A.s.focus; $('auto').checked = A.auto;
     if (A.s.map.length < A.s.age + 1) { A.running = true; $('btn-pause').textContent = '⏸'; processDecisions(); } else setRunning(true);
   }
@@ -189,7 +224,7 @@
       else if (m === 'spend') openSpend();
       else if (m === 'stats') UI.modal(UI.statsHTML(s.year));
       else if (m === 'feedback') location.href = 'mailto:jieunyi1995@gmail.com?subject=' + encodeURIComponent('5천만 분의 1 의견');
-      else if (m === 'exit') { save(); UI.closeModal(); setRunning(false); A.s = null; renderHome(); show('screen-home'); }
+      else if (m === 'exit') { save(); UI.closeModal(); setRunning(false); clearTimeout(A.benchTimer); A.s = null; renderHome(); show('screen-home'); }
       else if (m === 'assets') { UI.closeModal(); setTab('assets'); }
     });
   }
@@ -227,10 +262,16 @@
     const body = UI.modal(UI.livesHTML(lives));
     body.onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.id === 'btn-clear-lives') { if (confirm('전생 기록과 추모관을 모두 지울까요?')) { LS.del('krlife.lives'); renderHome(); UI.closeModal(); } return; }
+      if (b.id === 'btn-clear-lives') { if (confirm('전생 기록, 추모관, 순위표를 모두 지울까요?')) { LS.del('krlife.lives'); renderHome(); UI.closeModal(); } return; }
       if (b.dataset.view) { const rec = lives.find(l => l.id === b.dataset.view); if (rec) viewLife(rec); }
       if (b.dataset.mem) { const rec = lives.find(l => l.id === b.dataset.mem); if (rec) { rec.memorial = true; LS.set('krlife.lives', lives); renderHome(); UI.toast('추모관에 모셨습니다.'); openLives(); } }
     };
+  }
+  function openRanking(key) {
+    key = key || LS.get('krlife.rankKey', 'score');
+    const lives = LS.get('krlife.lives', []).filter(l => l.death);
+    const body = UI.modal(UI.rankingHTML(lives, key));
+    const sel = body.querySelector('#rank-key'); if (sel) sel.onchange = () => { LS.set('krlife.rankKey', sel.value); openRanking(sel.value); };
   }
   function openMemorial() {
     const lives = LS.get('krlife.lives', []);
@@ -258,6 +299,7 @@
     $('btn-continue').onclick = resume;
     $('btn-lives').onclick = e => { e.preventDefault(); openLives(); };
     $('btn-memorial-open').onclick = e => { e.preventDefault(); openMemorial(); };
+    $('btn-ranking').onclick = e => { e.preventDefault(); openRanking(); };
     $('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); };
     setTab(LS.get('krlife.tab', 'record'));
     document.querySelectorAll('[data-open]').forEach(a => a.onclick = e => { e.preventDefault(); const k = a.dataset.open; UI.modal(k === 'stats' ? UI.statsHTML(A.birthYear) : k === 'about' ? UI.aboutHTML() : k === 'privacy' ? UI.privacyHTML() : UI.notesHTML()); });

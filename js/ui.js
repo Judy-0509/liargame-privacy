@@ -107,7 +107,7 @@ window.KR = window.KR || {};
     $('items').innerHTML = UI.itemsHTML(S.itemList(s));
   };
   UI.renderAll = s => { UI.renderTop(s); UI.renderStats(s); UI.renderLog(s); UI.renderMap(s); UI.renderCurve(s); UI.renderCohort(s); UI.renderAssets(s); };
-  UI.livesHTML = lives => `<h2>전생 기록</h2><p class="text">이 브라우저에 남은 최근 10개의 삶.</p><ul class="lives">${lives.map(l => { const sm = l.summary; return `<li><div><b>${esc(sm.name)}</b> <span class="meta">${sm.birthYear}–${l.death ? l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'} · ${l.death ? `${l.death.age}세, ${esc(l.death.cause)}` : ''}</span></div><div class="actions" style="margin:0"><button class="small" data-view="${l.id}">다시 보기</button>${l.memorial ? '' : `<button class="small ghost" data-mem="${l.id}">추모관</button>`}</div></li>`; }).join('') || '<li class="meta">아직 없습니다.</li>'}</ul><div class="actions"><button class="ghost small" id="btn-clear-lives">모두 지우기</button></div>`;
+  UI.livesHTML = lives => `<h2>전생 기록</h2><p class="text">이 브라우저에 남은 최근 30개의 삶.</p><ul class="lives">${lives.map(l => { const sm = l.summary; return `<li><div><b>${esc(sm.name)}</b> <span class="meta">${sm.birthYear}–${l.death ? l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'} · ${l.death ? `${l.death.age}세, ${esc(l.death.cause)}` : ''}</span></div><div class="actions" style="margin:0"><button class="small" data-view="${l.id}">다시 보기</button>${l.memorial ? '' : `<button class="small ghost" data-mem="${l.id}">추모관</button>`}</div></li>`; }).join('') || '<li class="meta">아직 없습니다.</li>'}</ul><div class="actions"><button class="ghost small" id="btn-clear-lives">모두 지우기</button></div>`;
   UI.memorialHTML = lives => { const mem = lives.filter(l => l.memorial); return `<h2>추모관</h2><p class="text">끝까지 살아 낸 삶을 모셔 둡니다. 촛불을 켜고 한마디를 남길 수 있습니다.</p><div class="memorial">${mem.length ? mem.map(l => `<div class="grave"><b><i class="candle"></i>${esc(l.summary.name)}</b><small class="meta">${l.summary.birthYear}–${l.death.year} · ${l.summary.region} · ${l.death.age}세</small>${l.message ? `<div class="msg">${esc(l.message)}</div>` : ''}<div class="actions" style="margin-top:8px"><button class="small ghost" data-candle="${l.id}">촛불 ${l.candles || 0}</button><button class="small ghost" data-msg="${l.id}">한마디</button></div></div>`).join('') : '<p class="help">아직 모셔 둔 삶이 없습니다. 사망 기록 화면이나 전생 기록에서 모실 수 있습니다.</p>'}</div>`; };
 
   UI.modal = (html, opts = {}) => {
@@ -209,6 +209,7 @@ window.KR = window.KR || {};
       <li><b>생각 멈춤</b> 5, 15, 30, 50, 70세에 시간이 멈추고 한 줄을 남길 수 있습니다. 메뉴에서 끌 수 있습니다.</li>
       <li><b>스탯</b> 건강·행복·지식·관계(0~100)는 가능성을 높이거나 낮출 뿐, 결과를 정하지 않습니다.</li>
       <li><b>돈</b> 모든 금액은 2024년 원화 가치 기준 근사치입니다. 지난 세상의 소득과 집값은 당시 실질 수준으로 환산했습니다.</li>
+      <li><b>순위</b> 삶이 끝나면 같은 해에 태어난 500명을 자동으로 살게 한 뒤, 수명·행복·관계·재산·생애 소득에서 몇 번째인지 보여 줍니다. 인생 점수는 수명·행복·관계·재산 네 항목의 백분위 평균(0~100)입니다. 홈의 순위표에서는 이 기기에 남은 삶들끼리 겨룹니다.</li>
       <li><b>재산·보유</b> 순자산은 현금·예금·주식·코인·전세 보증금·집 시세·자동차에서 빚과 대출을 뺀 값입니다. 보유한 것 탭에서 집, 차, 반려동물, 스마트폰 같은 물건을 봅니다.</li>
       <li><b>다루지 않는 것</b> 자살은 한국의 주요 사망 원인이지만 이 시뮬레이션에서는 다루지 않습니다. 15세 이상에게 권합니다.</li>
     </ul>
@@ -227,10 +228,37 @@ window.KR = window.KR || {};
     <p class="text">이 사이트는 서버를 운영하지 않고 계정도 없습니다. 진행 중인 삶, 전생 기록, 추모관, 실제 출생 비교 입력값은 모두 이 브라우저의 저장 공간(localStorage)에만 남으며 외부로 전송되지 않습니다. 브라우저 데이터를 지우면 함께 사라집니다. 쿠키와 분석 도구를 쓰지 않습니다.</p>
     <p class="help">문의: <a href="mailto:jieunyi1995@gmail.com">jieunyi1995@gmail.com</a></p>`;
   UI.notesHTML = () => `<h2>업데이트 노트</h2>
-    <p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
+    <p class="text"><b>v0.3</b> — 순위. 같은 해 태어난 500명과 비교한 코호트 순위(인생 점수·재산·수명·행복·생애 소득·관계), 기기 안 전생 기록 순위표, 공유 카드에 순위 표시. 전생 기록 30개까지 보관. 사망 화면의 한마디 입력 제거.</p><p class="text"><b>v0.2</b> — 한 화면 레이아웃(탭), 재산 구성과 보유한 것 패널, 자동차·반려동물·스마트폰·운전면허 등 소유물, 전생 기록과 추모관을 홈 화면 모달로 이동.</p><p class="text"><b>v0.1 (베타)</b> — 첫 공개. 1960~2060년 출생, 17개 시도, 4개 스탯, 25가지 결정, 역사 사건, 생존 곡선, 같은 날 태어난 아이들, 전생 기록, 추모관(이 기기), 공유 카드.</p>
     <p class="help">알려진 한계: 지역 간 이동이 서울 진학 외에는 없음. 자녀의 삶은 요약으로만 흐름. 다가올 세상의 사건은 통계청 전망에 기댄 가정.</p>`;
 
-  UI.deathSummary = s => {
+  UI.fmtMetric = (k, v) => k === 'wealth' || k === 'income' ? U.fmtMan(v) : k === 'age' ? `${v}세` : k === 'score' ? `${v}점` : `${Math.round(v)}`;
+  UI.metricOf = (rec, k) => {
+    if (rec.rank && rec.rank[k]) return rec.rank[k].value;
+    if (rec.metrics && rec.metrics[k] != null) return rec.metrics[k];
+    const sm = rec.summary || {};
+    if (k === 'age') return rec.death ? rec.death.age : null;
+    if (k === 'wealth') return sm.assets != null ? sm.assets : null;
+    if (k === 'income') return sm.lifetimeIncome != null ? sm.lifetimeIncome : null;
+    if (k === 'happy' && sm.map && sm.map.length) return Math.round(sm.map.reduce((a, m) => a + m[1], 0) / sm.map.length * 10) / 10;
+    return null;
+  };
+  UI.rankHTML = rec => {
+    const r = rec.rank; if (!r) return '';
+    return `<h3>같은 해에 태어난 ${r.n}명 중</h3><div class="rankgrid">${S.RANK_KEYS.map(k => { const x = r[k]; return `<div><span>${S.RANK_LABEL[k]}</span><b>${x.rank}위</b> <small>상위 ${x.top}%</small><em>${UI.fmtMetric(k, x.value)}</em></div>`; }).join('')}</div>`;
+  };
+  UI.localRankLine = (lives, rec) => {
+    if (lives.length < 2) return '';
+    const pos = k => { const v = UI.metricOf(rec, k); const all = lives.map(l => UI.metricOf(l, k)).filter(x => x != null); if (v == null || all.length < 2) return null; return { r: all.filter(x => x > v).length + 1, n: all.length }; };
+    const parts = ['score', 'wealth', 'age'].map(k => { const p = pos(k); return p ? `${S.RANK_LABEL[k]} ${p.r}위/${p.n}` : null; }).filter(Boolean);
+    return parts.length ? `<p class="local">내 전생 기록 중 · ${parts.join(' · ')}</p>` : '';
+  };
+  UI.rankingHTML = (lives, key) => {
+    const rows = lives.map(l => ({ l, v: UI.metricOf(l, key) })).filter(x => x.v != null).sort((a, b) => b.v - a.v);
+    const sel = `<select id="rank-key" style="width:auto;padding:4px 8px">${S.RANK_KEYS.map(k => `<option value="${k}" ${k === key ? 'selected' : ''}>${S.RANK_LABEL[k]}</option>`).join('')}</select>`;
+    const table = rows.length ? `<table class="ranking-table"><tr><th>#</th><th>삶</th><th style="text-align:right">${S.RANK_LABEL[key]}</th><th style="text-align:right">코호트</th></tr>${rows.map((x, i) => { const sm = x.l.summary; const rk = x.l.rank && x.l.rank[key]; return `<tr><td>${i + 1}</td><td>${esc(sm.name)} <span class="meta">${sm.birthYear}–${x.l.death ? x.l.death.year : ''} · ${sm.region} · ${sm.sex === 'M' ? '남' : '여'}</span></td><td class="v">${UI.fmtMetric(key, x.v)}</td><td class="v meta">${rk ? `상위 ${rk.top}%` : '—'}</td></tr>`; }).join('')}</table>` : '<p class="help">아직 끝까지 살아 낸 삶이 없습니다.</p>';
+    return `<h2>순위표</h2><p class="text">이 기기에 남은 삶들의 순위. 코호트 열은 같은 해에 태어난 ${lives[0] && lives[0].rank ? lives[0].rank.n : 500}명(자동 진행) 중 상위 몇 %인지입니다.</p><div class="actions" style="margin:0 0 10px">${sel}</div>${table}`;
+  };
+  UI.deathSummary = (s, rec) => {
     const sm = S.summary(s), r = D.regions[s.region];
     const years = s.death ? s.death.age : s.age;
     $('d-title').textContent = `${s.name}, ${s.birthYear}–${s.death.year}`;
@@ -247,12 +275,13 @@ window.KR = window.KR || {};
       cell('생애 소득', U.fmtMan(sm.lifetimeIncome)),
       cell('마지막 스탯', `건강 ${Math.round(s.stats.health)} · 행복 ${Math.round(s.stats.happy)} · 지식 ${Math.round(s.stats.know)} · 관계 ${Math.round(s.stats.rel)}`),
     ].join('');
+    $('d-rank').innerHTML = rec ? UI.rankHTML(rec) + UI.localRankLine(rec.lives || [], rec) : '';
     const notes = Object.entries(s.notes || {}).filter(x => x[1]);
     $('d-items').innerHTML = `<h3 style="margin:8px 0 4px">남긴 것</h3>` + UI.itemsHTML(sm.items, true);
     $('d-notes').innerHTML = notes.length ? `<h3>남긴 생각</h3>` + notes.map(x => `<p>${x[0]}세 — ${esc(x[1])}</p>`).join('') : '';
   };
 
-  UI.drawShareCard = (canvas, s) => {
+  UI.drawShareCard = (canvas, s, rec) => {
     const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
     const r = D.regions[s.region], sm = S.summary(s);
     const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#15161c'); g.addColorStop(1, '#262833');
@@ -270,7 +299,8 @@ window.KR = window.KR || {};
     for (let a = 0; a < 100; a++) { const m = s.map[a]; ctx.fillStyle = m ? colors[m.st] || '#888' : '#33353f'; ctx.globalAlpha = m ? 0.5 + m.h / 200 : 0.5; ctx.fillRect(80 + (a % cols) * (size + 4), startY + Math.floor(a / cols) * (size + 4), size, size); }
     ctx.globalAlpha = 1; y = startY + 4 * (size + 4) + 70;
     ctx.fillStyle = '#ecebe6'; ctx.font = '400 36px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
-    ctx.fillText(`건강 ${Math.round(s.stats.health)}   행복 ${Math.round(s.stats.happy)}   지식 ${Math.round(s.stats.know)}   관계 ${Math.round(s.stats.rel)}`, 80, y); y += 70;
+    ctx.fillText(`건강 ${Math.round(s.stats.health)}   행복 ${Math.round(s.stats.happy)}   지식 ${Math.round(s.stats.know)}   관계 ${Math.round(s.stats.rel)}`, 80, y); y += 60;
+    if (rec && rec.rank) { ctx.fillStyle = '#f2b84b'; ctx.font = '600 38px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`인생 점수 ${rec.rank.score.value}점 · 같은 해에 태어난 ${rec.rank.n}명 중 ${rec.rank.score.rank}위`, 80, y); y += 54; ctx.fillStyle = '#9a9ca8'; ctx.font = '400 32px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'; ctx.fillText(`재산 ${rec.rank.wealth.rank}위 · 수명 ${rec.rank.age.rank}위 · 행복 ${rec.rank.happy.rank}위 · 관계 ${rec.rank.rel.rank}위`, 80, y); y += 60; }
     ctx.fillStyle = '#6f717c'; ctx.font = '400 28px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
     ctx.fillText(`한국 통계로 만든 인생 시뮬레이션 · ${location.host}${location.pathname.replace(/index\.html$/, '')}`, 80, H - 70);
   };

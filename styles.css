@@ -144,6 +144,21 @@ input[type=number], select, textarea { width: 100%; background: var(--bg2); bord
 .notes { margin: 8px 0; max-height: 18vh; overflow: auto; }
 .notes p { margin: 3px 0; font-style: italic; color: var(--muted); font-size: .9rem; }
 .death .items { margin: 6px 0; }
+.rank h3 { margin: 6px 0 4px; }
+.rankgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.rankgrid div { background: var(--bg2); border-radius: 10px; padding: 5px 8px; font-size: .8rem; line-height: 1.35; }
+.rankgrid span { display: block; color: var(--muted); font-size: .72rem; }
+.rankgrid b { font-size: 1rem; }
+.rankgrid small { color: var(--muted); display: block; }
+.rankgrid em { display: block; font-style: normal; color: var(--muted); font-size: .74rem; }
+.rank .local { color: var(--muted); font-size: .82rem; margin: 6px 0 0; }
+.ranking-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.ranking-table th, .ranking-table td { text-align: left; padding: 5px 4px; border-top: 1px solid var(--line); }
+.ranking-table th { color: var(--muted); font-weight: 600; font-size: .78rem; border-top: 0; }
+.ranking-table td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ranking-table tr.me td { color: var(--accent); }
+.ranking-table .meta { color: var(--muted); font-size: .78rem; }
+.notes { max-height: 14vh; }
 
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 14px; z-index: 20; animation: fade .2s ease; }
 .modal-card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; width: min(560px, 100%); max-height: 88dvh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }

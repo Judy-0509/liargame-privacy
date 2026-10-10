@@ -788,7 +788,7 @@ window.KR = window.KR || {};
       if (pool && s.log.length === start && U.chance(s, 0.7)) S.log(s, U.pick(s, pool), 'flavor');
       else if (pool && U.chance(s, 0.25)) S.log(s, U.pick(s, pool), 'flavor');
     }
-    s.map.push({ a: s.age, y: s.year, st: stageOf(s), h: Math.round(s.stats.happy), hp: Math.round(s.stats.health) });
+    s.map.push({ a: s.age, y: s.year, st: stageOf(s), h: Math.round(s.stats.happy), hp: Math.round(s.stats.health), r: Math.round(s.stats.rel) });
     if (s.cohort) for (const c of s.cohort) S.stepAuto(c);
     return s.log.slice(start);
   };
@@ -825,6 +825,34 @@ window.KR = window.KR || {};
     if (s.pet) out.push({ k: 'pet', n: `${s.pet.kind} ${s.pet.n} (${s.pet.age}살)`, v: 0, y: s.year - s.pet.age });
     for (const i of s.items) out.push({ k: i.k, n: i.n, v: i.v, y: i.y });
     return out;
+  };
+  S.BENCH_VERSION = 3;
+  S.metrics = s => {
+    const n = s.map.length || 1;
+    const avg = k => s.map.length ? s.map.reduce((a, m) => a + (m[k] == null ? 50 : m[k]), 0) / n : s.stats[k === 'h' ? 'happy' : k === 'r' ? 'rel' : 'health'];
+    return { age: s.death ? s.death.age : s.age, happy: Math.round(avg('h') * 10) / 10, rel: Math.round(avg('r') * 10) / 10, health: Math.round(avg('hp') * 10) / 10, wealth: S.netWorth(s), income: s.money.lifetimeIncome, kids: s.kids.filter(k => k.alive).length };
+  };
+  S.autoLife = (birthYear, seed) => {
+    const s = S.newLife({ birthYear, seed }, true);
+    S.completeYear(s);
+    let g = 0; while (s.alive && g++ < 130) S.stepAuto(s);
+    return S.metrics(s);
+  };
+  S.RANK_KEYS = ['score', 'wealth', 'age', 'happy', 'income', 'rel'];
+  S.RANK_LABEL = { score: '인생 점수', wealth: '최종 재산', age: '수명', happy: '행복', income: '생애 소득', rel: '관계' };
+  S.percentile = (sorted, v) => { let below = 0, ties = 0; for (const x of sorted) { if (x < v) below++; else if (x === v) ties++; } return sorted.length ? (below + ties * 0.5) / sorted.length : 0.5; };
+  S.rankOf = (sorted, v) => { let above = 0; for (const x of sorted) if (x > v) above++; return above + 1; };
+  S.scoreOf = (m, bench) => Math.round(100 * (S.percentile(bench.age, m.age) + S.percentile(bench.happy, m.happy) + S.percentile(bench.rel, m.rel) + S.percentile(bench.wealth, m.wealth)) / 4);
+  S.finishBench = raw => {
+    const b = { n: raw.length, v: S.BENCH_VERSION };
+    for (const k of ['age', 'happy', 'rel', 'wealth', 'income']) b[k] = raw.map(m => m[k]).sort((x, y) => x - y);
+    b.score = raw.map(m => S.scoreOf(m, b)).sort((x, y) => x - y);
+    return b;
+  };
+  S.rankAll = (m, bench) => {
+    const out = {}; const mm = { ...m, score: S.scoreOf(m, bench) };
+    for (const k of S.RANK_KEYS) out[k] = { value: mm[k], rank: S.rankOf(bench[k], mm[k]), top: Math.max(1, Math.round((1 - S.percentile(bench[k], mm[k])) * 100)) };
+    out.n = bench.n; return out;
   };
   S.summary = function (s) {
     const r = region(s);
