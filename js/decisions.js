@@ -27,7 +27,7 @@ window.KR = window.KR || {};
 
   const capitalP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 64) / 7));
   const localP = s => 1 / (1 + Math.exp(-(s.stats.know + S.hsBonus(s) - 48) / 8));
-  const majorF = s => { const m = D.majors[s.edu.major]; let f = m ? m.big : 1; if (s.edu.sub === '컴퓨터·소프트웨어' && s.year >= 2010) f *= 1.15; if (s.edu.sub === '전기·전자·반도체') f *= 1.1; if (s.edu.sub === '언론·미디어') f *= 0.8; return f; };
+  const majorF = s => { const m = D.majors[s.edu.major], m2 = D.majors[s.edu.major2]; let f = Math.max(m ? m.big : 1, m2 ? m2.big : 0); if (s.edu.sub === '컴퓨터·소프트웨어' && s.year >= 2010) f *= 1.15; if (s.edu.sub === '전기·전자·반도체') f *= 1.1; if (s.edu.sub === '언론·미디어') f *= 0.8; return f; };
   const bigP = s => { const t = s.edu.univ ? s.edu.univ.tier : -1; const eduF = s.edu.degree === '대학원졸' ? 1.3 : t >= 3 ? 1.4 : t === 2 ? 1.15 : t === 1 ? 0.85 : t === 0 ? 0.6 : 0.35; return U.clamp(0.15 + (s.stats.know - 60) / 100 + (s.edu.spec || 0), 0.03, 0.75) * eduF * majorF(s); };
   const jobLabel = s => (D.jobs[s.work.type] || { label: '일터' }).label;
   const employed = s => (s.work.status === 'employed' || s.work.status === 'self') && !!s.work.type;
@@ -143,7 +143,7 @@ window.KR = window.KR || {};
       id: 'grad_school', when: never,
       title: '대학원에 갈까', text: '공부를 더 하면 길이 넓어지지만, 시작이 늦어진다.',
       options: s => [
-        { label: '대학원 진학 (2년)', hint: '지식이 오르고 초봉이 높아진다.', auto: s => s.parents.decile >= 6 ? 0.14 : 0.06, focus: 'study', apply: s => { s.edu.stage = 'grad'; s.edu.left = 2; s.work.status = 'student'; S.log(s, '대학원에 들어갔다.', 'edu'); S.cost(s, 1200 * idx(s)); } },
+        { label: '대학원 진학 (2년)', hint: '지식이 오르고 초봉이 높아진다.', auto: s => (s.parents.decile >= 6 ? 0.14 : 0.06) * (s.flags.ra ? 2.5 : 1), focus: 'study', apply: s => { s.edu.stage = 'grad'; s.edu.left = 2; s.work.status = 'student'; S.log(s, '대학원에 들어갔다.', 'edu'); S.cost(s, 1200 * idx(s)); } },
         { label: '바로 취업', hint: '일을 시작한다.', auto: () => 0.7, apply: () => { } },
       ],
     },
@@ -157,7 +157,7 @@ window.KR = window.KR || {};
         { label: '교사 임용 시험', hint: s => `해마다 약 ${s.edu.sub === '초등교육' ? 60 : s.edu.sub === '유아·특수교육' ? 45 : 25}%가 합격한다.`, hide: s.edu.major !== '교육' || s.age > 35, auto: () => 1.5, focus: 'study', apply: s => { s.work.plan = '임용'; s.work.examP = s.edu.sub === '초등교육' ? 0.6 : s.edu.sub === '유아·특수교육' ? 0.45 : 0.25; } },
         { label: '전문직 시험 (회계사·변리사·세무사·건축사 등)', hint: '합격 가능성 50%. 비용이 크다.', hide: !(s.edu.degree === '대졸' || s.edu.degree === '대학원졸') || !((s.stats.know >= 84 && s.edu.univ && s.edu.univ.tier >= 2) || (s.edu.sub === '경영·경제' && s.stats.know >= 78) || (s.edu.sub === '건축·토목' && s.stats.know >= 70)), auto: () => 0.35, focus: 'study', apply: s => { s.work.plan = '전문직'; } },
         { label: '올해는 쉰다', hint: '통계청은 이것을 쉬었음이라 부른다. 마음은 쉬고 이력서의 공백은 늘어난다.', hide: s.age > 34, auto: s => s.work.seeking >= 2 || s.stats.happy < 40 ? 0.2 : 0.06, focus: 'rest', apply: s => { s.work.status = 'rest'; S.bump(s, 'happy', 5); S.bump(s, 'health', 2); S.log(s, '올해는 쉬기로 했다. 구직도 학원도 없이.', 'work'); } },
-        { label: '창업·자영업', hint: s => `자본 ${money(5000 * idx(s))}. 5년 생존율 34%.`, hide: s.age < 22, auto: s => s.money.assets > 5000 * idx(s) ? 0.25 : 0.08, focus: 'money', apply: s => { s.work.plan = '창업'; } },
+        { label: '창업·자영업', hint: s => `자본 ${money(5000 * idx(s))}. 5년 생존율 34%.`, hide: s.age < 22, auto: s => (s.money.assets > 5000 * idx(s) ? 0.25 : 0.08) * (s.flags.startupClub ? 2 : 1), focus: 'money', apply: s => { s.work.plan = '창업'; } },
         { label: '프리랜서·플랫폼 노동', hint: '바로 시작. 소득은 불안정하다.', hide: s.year < 2005, auto: () => 0.18, focus: 'rest', apply: s => { s.work.plan = '프리랜서'; } },
         { label: '해외로 떠나기', hint: '소득은 높지만 가족과 멀어진다.', hide: s.stats.know < 60 || s.year < 1990 || s.abroad || s.love.married, auto: () => 0.06, apply: s => { s.work.plan = '해외'; } },
       ],

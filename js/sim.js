@@ -31,6 +31,8 @@ window.KR = window.KR || {};
   };
   U.normal = (s, m, sd) => { const u = 1 - U.rnd(s), v = U.rnd(s); return m + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
   U.ageKo = a => `${a}세`;
+  U.eul = w => { const c = w.charCodeAt(w.length - 1); return w + (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? '을' : '를'); };
+  U.iga = w => { const c = w.charCodeAt(w.length - 1); return w + (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? '이' : '가'); };
 
   const L = KR.life = (() => {
     const cache = {};
@@ -229,11 +231,11 @@ window.KR = window.KR || {};
     for (const k of s.kids) {
       if (!k.alive) continue;
       const ka = s.year - k.by;
-      if (ka === 0 && U.chance(s, yr('imr', s.year) / 1000 * decileF(S.decileOf(s)))) { k.alive = false; S.log(s, `${k.n}이(가) 첫돌을 맞지 못했다.`, 'family'); s.yearShock.happy -= 35; s.yearShock.rel -= 10; continue; }
-      if (ka === 6) S.log(s, `${k.n}이(가) 초등학교에 들어갔다.`, 'family');
-      if (ka === 18) { k.univ = U.chance(s, yr('univRate', s.year) * (0.7 + S.decileOf(s) * 0.05)); S.log(s, k.univ ? `${k.n}이(가) 대학에 들어갔다.` : `${k.n}이(가) 고등학교를 마치고 일을 시작했다.`, 'family'); }
-      if (ka >= 24 && k.home && U.chance(s, 0.2)) { k.home = false; S.log(s, `${k.n}이(가) 독립했다.`, 'family'); }
-      if (!k.married && ka >= 27 && U.chance(s, ka < 40 ? 0.08 : 0.02)) { k.married = true; k.marriedYear = s.year; S.log(s, `${k.n}이(가) 결혼했다.`, 'family'); s.yearShock.happy += 8; pushDecision(s, 'kid_wedding'); }
+      if (ka === 0 && U.chance(s, yr('imr', s.year) / 1000 * decileF(S.decileOf(s)))) { k.alive = false; S.log(s, `${U.iga(k.n)} 첫돌을 맞지 못했다.`, 'family'); s.yearShock.happy -= 35; s.yearShock.rel -= 10; continue; }
+      if (ka === 6) S.log(s, `${U.iga(k.n)} 초등학교에 들어갔다.`, 'family');
+      if (ka === 18) { k.univ = U.chance(s, yr('univRate', s.year) * (0.7 + S.decileOf(s) * 0.05)); S.log(s, k.univ ? `${U.iga(k.n)} 대학에 들어갔다.` : `${U.iga(k.n)} 고등학교를 마치고 일을 시작했다.`, 'family'); }
+      if (ka >= 24 && k.home && U.chance(s, 0.2)) { k.home = false; S.log(s, `${U.iga(k.n)} 독립했다.`, 'family'); }
+      if (!k.married && ka >= 27 && U.chance(s, ka < 40 ? 0.08 : 0.02)) { k.married = true; k.marriedYear = s.year; S.log(s, `${U.iga(k.n)} 결혼했다.`, 'family'); s.yearShock.happy += 8; pushDecision(s, 'kid_wedding'); }
       if (k.married && !k.kids && ka >= 29 && U.chance(s, 0.15)) { k.kids = 1; S.log(s, '손주가 태어났다.', 'family'); s.yearShock.happy += 8; s.yearShock.rel += 5; }
     }
   }
@@ -287,13 +289,16 @@ window.KR = window.KR || {};
         } else S.bump(s, 'know', 4);
         if (e.left <= 0) {
           if (e.stage === 'univ') {
+            if (!e.univ.online && U.chance(s, 0.85)) S.log(s, U.pick(s, ['취업 박람회를 돌며 기념품만 챙겼다.', '취준 스터디에 들어갔다. 서로의 자소서를 고쳤다.', '공채 시즌. 자소서 스무 개를 썼다.', e.major === '예체능' ? '졸업 전시를 준비하느라 밤을 새웠다.' : '졸업 논문을 마감 전날 끝냈다.', '졸업 사진을 찍었다. 학사모가 어색했다.']), 'youth');
             e.degree = e.univ.years === 2 ? '전문대졸' : '대졸'; e.grad = true;
-            S.log(s, `${e.univ.kind}을(를) 졸업했다.`, 'edu');
+            S.log(s, `${U.eul(e.univ.kind)} 졸업했다.`, 'edu');
             e.stage = 'done'; s.work.status = 'seeking';
             if (e.univ.med) { const t = e.sub === '의예' ? '의사' : U.weighted(s, [['치과의사', 40], ['한의사', 25], ['약사', 35]], x => x[1])[0]; S.startJob(s, '의료', `${t} 면허를 땄다. 수련이 시작됐다.`, t); }
             else if (e.sub === '간호') { if (U.chance(s, 0.9)) S.startJob(s, '간호', '간호사 면허를 따고 병원에서 일을 시작했다.', '간호사'); }
             else if (e.sub === '법·행정' && s.year >= 2009 && s.stats.know >= 70) pushDecision(s, 'lawschool');
-            else if (s.stats.know >= 72 && e.univ.years >= 4 && !e.univ.online) pushDecision(s, 'grad_school');
+            else if (s.flags.internBig && U.chance(s, 0.35)) S.startJob(s, '대기업', '인턴을 했던 회사에서 정규직 제안이 왔다. 바로 입사했다.');
+            else if (s.flags.profRef && U.chance(s, 0.6)) S.startJob(s, U.chance(s, 0.4) ? '대기업' : '중견', '교수님 추천으로 졸업과 동시에 취업했다.');
+            else if ((s.stats.know >= 72 || (s.flags.ra && s.stats.know >= 65)) && e.univ.years >= 4 && !e.univ.online) pushDecision(s, 'grad_school');
           } else if (e.lawschool) { e.degree = '대학원졸'; e.stage = 'done'; e.lawschool = false; if (U.chance(s, 0.55 + (s.stats.know - 70) / 200)) S.startJob(s, '전문직', '변호사 시험에 합격했다.', '변호사'); else { s.work.status = 'seeking'; S.log(s, '변호사 시험에 떨어졌다. 다른 길을 찾아야 했다.', 'edu'); s.yearShock.happy -= 8; } }
           else { e.degree = '대학원졸'; e.stage = 'done'; s.work.status = 'seeking'; S.log(s, '대학원을 마쳤다.', 'edu'); }
         }
@@ -513,7 +518,7 @@ window.KR = window.KR || {};
         const k = { sex: U.chance(s, 0.513) ? 'M' : 'F', by: s.year, alive: true, home: true };
         k.n = S.makeName(s, k.sex, s.year).slice(1);
         s.kids.push(k); lv.trying = false; lv.tryYears = 0;
-        S.log(s, `${k.sex === 'M' ? '아들' : '딸'} ${k.n}이(가) 태어났다.`, 'kid');
+        S.log(s, `${k.sex === 'M' ? '아들' : '딸'} ${U.iga(k.n)} 태어났다.`, 'kid');
         s.yearShock.happy += 14; s.yearShock.rel += 6;
         if (s.work.status === 'employed') pushDecision(s, 'parental_leave');
       } else if (lv.tryYears >= 5) { lv.trying = false; S.log(s, '아이는 오지 않았다. 둘이서 살기로 했다.', 'kid'); s.yearShock.happy -= 8; }
@@ -592,11 +597,11 @@ window.KR = window.KR || {};
     } else if (S.hasItem(s, 'license') && working && a >= 24 && a <= 62 && (s.last.buy_car == null || a - s.last.buy_car >= 6) && s.money.assets >= 1500 * idx) pushDecision(s, 'buy_car');
     if (s.pet) {
       s.pet.age += 1; S.cost(s, 150 * idx); S.bump(s, 'rel', 1);
-      if (s.pet.age >= s.pet.life) { S.log(s, `${s.pet.n}이(가) 무지개다리를 건넜다.`, 'item'); s.yearShock.happy -= 8; s.pet = null; }
+      if (s.pet.age >= s.pet.life) { S.log(s, `${U.iga(s.pet.n)} 무지개다리를 건넜다.`, 'item'); s.yearShock.happy -= 8; s.pet = null; }
     } else if (a >= 24 && a <= 68 && y >= 1990 && s.housing !== 'parents' && !s.hs.careHome && U.chance(s, 0.015)) {
       const kind = U.chance(s, 0.6) ? '강아지' : '고양이';
       s.pet = { kind, n: U.pick(s, petNames), age: 0, life: U.int(s, 11, 16) };
-      S.log(s, `${kind} ${s.pet.n}을(를) 들였다.`, 'item'); s.yearShock.happy += 5; s.yearShock.rel += 2;
+      S.log(s, `${kind} ${U.eul(s.pet.n)} 들였다.`, 'item'); s.yearShock.happy += 5; s.yearShock.rel += 2;
     }
   }
 
@@ -789,8 +794,9 @@ window.KR = window.KR || {};
 
   S.stepAuto = function (c) {
     if (!c.alive) return;
-    const r = S.beginYear(c);
-    for (const id of r.decisions.slice()) S.autoChoose(c, id);
+    S.beginYear(c);
+    let guard = 0;
+    while (c.queue.length && guard++ < 12) { const id = c.queue[0]; if (!S.decision(c, id)) continue; S.autoChoose(c, id); }
     S.completeYear(c);
   };
 

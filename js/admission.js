@@ -84,5 +84,6 @@ window.KR = window.KR || {};
     if (e.univ.capital && !r.capital && !e.univ.online) { s.flags.movedCapital = true; s.housing = 'monthly'; S.log(s, '서울로 올라와 자취를 시작했다.', 'home'); }
     else if (t.id === 'national' && r.capital) { s.housing = 'monthly'; S.log(s, '지방으로 내려가 기숙사 생활을 시작했다.', 'home'); }
     if (s.parents.decile <= 5 && t.id !== 'cyber') S.pushDecision(s, 'tuition'); else e.tuition = '부모';
+    if (!t.online) S.pushDecision(s, 'campus');
   };
 })();
